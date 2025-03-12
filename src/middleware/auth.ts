@@ -18,7 +18,7 @@ export const isAuthenticated = async (
     next: NextFunction
 ): Promise<void> => {
     try {
-        console.log("token cookie:",req.cookies);
+        console.log("token cookie:", req.cookies);
         const { token } = req.cookies;
         if (!token) {
             res.status(401).json({
@@ -37,6 +37,14 @@ export const isAuthenticated = async (
         const decoded = jwt.verify(token, process.env.JWT_SECRET) as {
             id: number;
         };
+
+        if (!decoded) {
+            res.status(401).json({
+                status: false,
+                message: "token is not valid",
+            });
+            return;
+        }
 
         const user = await userRepository.findOne({
             where: { id: decoded.id },
