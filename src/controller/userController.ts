@@ -1,11 +1,11 @@
 import { Request, Response } from "express";
 import { AppDataSource } from "../config/data-source";
-import { User } from "../entities/User";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
 import { v2 as cloudinary } from "cloudinary";
 import { UploadedFile } from "express-fileupload";
+import { User } from "../models/User";
 
 dotenv.config();
 
@@ -97,7 +97,7 @@ export const login = async (req: Request, res: Response): Promise<void> => {
             }
 
             const token = jwt.sign(payload, secret, {
-                expiresIn: "2h",
+                expiresIn: "7d",
             });
 
             user.token = token;
@@ -275,7 +275,7 @@ export const updatePassword = async (
         }
 
         const isPasswordMatched = await bcrypt.compare(
-            req.body.oldPassword,
+            req.body.currentPassword,
             user.password
         );
 

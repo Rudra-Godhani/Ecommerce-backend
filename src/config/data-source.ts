@@ -13,7 +13,7 @@ export const AppDataSource = new DataSource({
     database: process.env.DB_NAME || "ecommerceapp",
     synchronize: true, // Auto-create tables based on entities (disable in production)
     logging: false,
-    entities: ["src/entities/*.ts"],
+    entities: ["src/models/*.ts"],
     migrations: ["src/migrations/*.ts"],
     subscribers: [],
 });

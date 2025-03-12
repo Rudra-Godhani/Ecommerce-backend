@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import { AppDataSource } from "../config/data-source";
-import { User } from "../entities/User";
+import { User } from "../models/User";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
