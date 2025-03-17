@@ -118,7 +118,7 @@ export const resetPassword = async (
         }
 
         const decoded = jwt.verify(token, secret) as {
-            id: number;
+            id: string;
         };
 
             if (!decoded) {

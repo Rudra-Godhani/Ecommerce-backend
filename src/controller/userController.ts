@@ -106,6 +106,7 @@ export const login = async (req: Request, res: Response): Promise<void> => {
             const options = {
                 expires: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
                 httpOnly: true,
+                secure: true,
             };
 
             res.cookie("token", token, options).status(200).json({
@@ -203,10 +204,12 @@ export const updateProfile = async (
         const userNewData = {
             name: req.body.name,
             email: req.body.email,
-            phoneNumber: req.body.phoneNumber,
+            phoneNumber: Number(req.body.phoneNumber),
             address: req.body.address,
             profileImage: (req.user as User).profileImage,
         };
+
+        console.log(userNewData);
 
         if (req.files && req.files.profileImage) {
             const profileImage = req.files.profileImage;

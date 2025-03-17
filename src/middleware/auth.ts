@@ -35,7 +35,7 @@ export const isAuthenticated = async (
         }
 
         const decoded = jwt.verify(token, process.env.JWT_SECRET) as {
-            id: number;
+            id: string;
         };
 
         if (!decoded) {

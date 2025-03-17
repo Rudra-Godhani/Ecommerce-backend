@@ -9,7 +9,7 @@ import {
 @Entity()
 export class User {
     @PrimaryGeneratedColumn("uuid")
-    id!: number;
+    id!: string;
 
     @Column({
         length: 100,
@@ -23,9 +23,9 @@ export class User {
     password!: string;
 
     @Column({type: "bigint", nullable: true })
-    phoneNumber!: string;
+    phoneNumber!: number;
 
-    @Column({ default: "" })
+    @Column({ nullable:true })
     address!: string;
 
     @Column({ type: "jsonb", default: { public_id: "", url: "" } })
@@ -35,7 +35,7 @@ export class User {
     };
 
     @Column({ nullable: true })
-    token?: string;
+    token!: string;
 
     @CreateDateColumn({ type: "timestamp" })
     createdAt!: Date;

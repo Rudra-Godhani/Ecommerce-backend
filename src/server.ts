@@ -7,6 +7,7 @@ import cookieParser from "cookie-parser";
 import { databaseConnect } from "./config/databaseConnection";
 import { cloudinaryConnect } from "./config/cloudinary";
 import fileUpload from "express-fileupload";
+import { insertData } from "./insertProducts";
 
 dotenv.config();
 
@@ -31,14 +32,29 @@ app.use(
 
 app.use("/api/v1/user", userRoutes);
 
-app.get("/", (req, res) => {
-    res.send("hello, typescript backend!");
-});
+// app.get("/", (req, res) => {
+//     res.send("hello, typescript backend!");
+// });
 
-//connect to database
-databaseConnect();
-//connect to the cloudinary
-cloudinaryConnect();
+// //connect to database
+// databaseConnect();
+// //connect to the cloudinary
+// cloudinaryConnect();
+// insertData();
+
+const startServer = async () => {
+    // connect to database
+    await databaseConnect();
+
+    // connect to the cloudinary
+    cloudinaryConnect();
+
+    // insert data to database
+    await insertData();
+};
+
+startServer();
+
 app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
 });
