@@ -1,5 +1,6 @@
 import express from "express";
-import dotenv from "dotenv";
+// import dotenv from"dotenv";
+import "dotenv/config";
 import { AppDataSource } from "./config/data-source";
 import cors from "cors";
 import userRoutes from "./routes/userRoutes";
@@ -10,7 +11,7 @@ import { cloudinaryConnect } from "./config/cloudinary";
 import fileUpload from "express-fileupload";
 import { insertData } from "./insertProducts";
 
-dotenv.config();
+// dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 6000;
@@ -58,5 +59,6 @@ const startServer = async () => {
 startServer();
 
 app.listen(PORT, () => {
+    console.log(`Database running on url ${process.env.DATABASE_URL}`);
     console.log(`Server running on port ${PORT}`);
 });
