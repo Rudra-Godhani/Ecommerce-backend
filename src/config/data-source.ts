@@ -6,6 +6,7 @@ import { Product } from "../models/Product";
 
 dotenv.config();
 
+console.log("ENV: ", process.env.DATABASE_URL);
 export const AppDataSource = new DataSource({
     type: "postgres",
     url: process.env.DATABASE_URL,
@@ -20,4 +21,7 @@ export const AppDataSource = new DataSource({
     entities: [User,Product],
     migrations: ["src/migrations/*.ts"],
     subscribers: [],
+    ssl: {
+        rejectUnauthorized: false,
+    },
 });

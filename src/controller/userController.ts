@@ -146,7 +146,10 @@ export const getAllUsers = async (
 ): Promise<void> => {
     try {
         const users = await userRepository.find();
-        res.status(200).json(users);
+        res.status(200).json({
+            success: true,
+            users: users
+        });
     } catch (error) {
         res.status(500).json({
             success: false,

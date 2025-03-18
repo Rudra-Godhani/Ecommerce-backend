@@ -3,6 +3,7 @@ import dotenv from "dotenv";
 import { AppDataSource } from "./config/data-source";
 import cors from "cors";
 import userRoutes from "./routes/userRoutes";
+import productRoutes from "./routes/productRoutes";
 import cookieParser from "cookie-parser";
 import { databaseConnect } from "./config/databaseConnection";
 import { cloudinaryConnect } from "./config/cloudinary";
@@ -31,6 +32,7 @@ app.use(
 );
 
 app.use("/api/v1/user", userRoutes);
+app.use("/api/v1/prodyct", productRoutes);
 
 // app.get("/", (req, res) => {
 //     res.send("hello, typescript backend!");
