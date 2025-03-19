@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { AppDataSource } from "../config/data-source";
+import { AppDataSource } from "../config/databaseConnection";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
@@ -101,6 +101,7 @@ export const login = async (req: Request, res: Response): Promise<void> => {
             });
 
             user.token = token;
+            await userRepository.save(user);
             const { password: _, ...userWithoutPassword } = user;
 
             const options = {

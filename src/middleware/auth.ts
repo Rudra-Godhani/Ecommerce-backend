@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from "express";
-import { AppDataSource } from "../config/data-source";
+import { AppDataSource } from "../config/databaseConnection";
 import { User } from "../models/User";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
