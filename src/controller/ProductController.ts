@@ -120,10 +120,10 @@ export const sortedProducts = async (req: Request, res: Response) => {
             length: filteredProducts.length,
         });
     } catch (error) {
-        console.error("Error filtering products:", error);
+        console.error("Error sorting products:", error);
         res.status(500).json({
             success: false,
-            message: "Products cannot be filtered",
+            message: "Products cannot be sorted",
         });
     }
 };
