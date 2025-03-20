@@ -8,6 +8,7 @@ import { databaseConnect } from "./config/databaseConnection";
 import { cloudinaryConnect } from "./config/cloudinary";
 import fileUpload from "express-fileupload";
 import { insertData } from "./insertProducts";
+import { errorMiddleware } from "./middleware/errorHandler";
 
 const app = express();
 const PORT = process.env.PORT || 6000;
@@ -49,10 +50,11 @@ const startServer = async () => {
     cloudinaryConnect();
 
     // insert data to database
-    await insertData();
+    // await insertData();
 };
 
 startServer();
+app.use(errorMiddleware);
 
 app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
