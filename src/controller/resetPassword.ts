@@ -1,4 +1,4 @@
-import { Request, Response } from "express";
+import { NextFunction, Request, Response } from "express";
 import { AppDataSource } from "../config/databaseConnection";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
@@ -7,17 +7,16 @@ import { v2 as cloudinary } from "cloudinary";
 import { UploadedFile } from "express-fileupload";
 import { User } from "../models/User";
 import nodemailer from "nodemailer";
+import { catchAsyncErrorHandler } from "../utils/CatchAsyncErrorHandler";
+import { ErrorHandler } from "../middleware/errorHandler";
 
 dotenv.config();
 
 const userRepository = AppDataSource.getRepository(User);
 
 // register user
-export const forgotPassword = async (
-    req: Request,
-    res: Response
-): Promise<void> => {
-    try {
+export const forgotPassword = catchAsyncErrorHandler(
+    async (req: Request, res: Response, next: NextFunction): Promise<void> => {
         const { email } = req.body;
 
         // Check if username exists
@@ -25,10 +24,9 @@ export const forgotPassword = async (
             where: { email },
         });
         if (!user) {
-            res.status(404).json({
-                success: false,
-                message: "No account found with this email address.",
-            });
+            next(
+                new ErrorHandler("No user found with this email address.", 404)
+            );
             return;
         }
 
@@ -38,11 +36,12 @@ export const forgotPassword = async (
 
         const secret = process.env.JWT_SECRET;
         if (!secret) {
-            res.status(500).json({
-                success: false,
-                message:
-                    "Internal server error: JWT_SECRET is not defined in environment variables",
-            });
+            next(
+                new ErrorHandler(
+                    "Internal server error: JWT_SECRET is not defined in environment variables.",
+                    500
+                )
+            );
             return;
         }
 
@@ -67,11 +66,12 @@ export const forgotPassword = async (
 
         transport.sendMail(mailOptions, function (error, info) {
             if (error) {
-                res.status(500).json({
-                    success: false,
-                    message:
+                next(
+                    new ErrorHandler(
                         "Failed to send reset email. Please try again later.",
-                });
+                        500
+                    )
+                );
                 return;
             } else {
                 res.status(200).json({
@@ -81,39 +81,35 @@ export const forgotPassword = async (
                 });
             }
         });
-    } catch (error) {
-        console.error("Error during forgot password process:", error);
-        res.status(500).json({
-            success: false,
-            message:
-                "Something went wrong while processing your request. Please try again later.",
-        });
+        //  catch (error) {
+        //     console.error("Error during forgot password process:", error);
+        //     res.status(500).json({
+        //         success: false,
+        //         message:
+        //             "Something went wrong while processing your request. Please try again later.",
+        //     });
+        // }
     }
-};
+);
 
-export const resetPassword = async (
-    req: Request,
-    res: Response
-): Promise<void> => {
-    try {
+export const resetPassword = catchAsyncErrorHandler(
+    async (req: Request, res: Response, next: NextFunction): Promise<void> => {
         const { token } = req.params;
         const { newPassword } = req.body;
 
         if (!token) {
-            res.status(404).json({
-                success: false,
-                message: "token is missing.",
-            });
+            next(new ErrorHandler("token is missing.", 404));
             return;
         }
 
         const secret = process.env.JWT_SECRET;
         if (!secret) {
-            res.status(500).json({
-                success: false,
-                message:
-                    "Internal server error: JWT_SECRET is not defined in environment variables",
-            });
+            next(
+                new ErrorHandler(
+                    "Internal server error: JWT_SECRET is not defined in environment variables.",
+                    500
+                )
+            );
             return;
         }
 
@@ -121,13 +117,10 @@ export const resetPassword = async (
             id: string;
         };
 
-            if (!decoded) {
-                res.status(401).json({
-                    success: false,
-                    message: "token is not valid",
-                });
-                return;
-            }
+        if (!decoded) {
+            next(new ErrorHandler("token is not valid.", 401));
+            return;
+        }
 
         const id = decoded.id;
 
@@ -140,12 +133,13 @@ export const resetPassword = async (
             success: true,
             message: "Password updated successfullly",
         });
-    } catch (error) {
-        console.error("Error during reset password process:", error);
-        res.status(500).json({
-            success: false,
-            message:
-                "Something went wrong while updatig password. Please try again later.",
-        });
+        // catch (error) {
+        //     console.error("Error during reset password process:", error);
+        //     res.status(500).json({
+        //         success: false,
+        //         message:
+        //             "Something went wrong while updatig password. Please try again later.",
+        //     });
+        // }
     }
-};
+);
