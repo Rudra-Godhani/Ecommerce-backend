@@ -1,4 +1,4 @@
-import { Request, Response } from "express";
+import { NextFunction, Request, Response } from "express";
 import { AppDataSource } from "../config/databaseConnection";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
@@ -6,14 +6,15 @@ import dotenv from "dotenv";
 import { v2 as cloudinary } from "cloudinary";
 import { UploadedFile } from "express-fileupload";
 import { User } from "../models/User";
+import { catchAsyncErrorHandler } from "../utils/CatchAsyncErrorHandler";
+import { ErrorHandler } from "../middleware/errorHandler";
 
 dotenv.config();
 
 const userRepository = AppDataSource.getRepository(User);
 
-// register user
-export const register = async (req: Request, res: Response): Promise<void> => {
-    try {
+export const register = catchAsyncErrorHandler(
+    async (req: Request, res: Response, next: NextFunction): Promise<void> => {
         const { name, email, password } = req.body;
 
         // Check if username exists
@@ -21,20 +22,14 @@ export const register = async (req: Request, res: Response): Promise<void> => {
             where: { name },
         });
         if (usernameExists) {
-            res.status(400).json({
-                success: false,
-                message: "Username is already used",
-            });
+            next(new ErrorHandler("Username is already used", 400));
             return;
         }
 
         // Check if email exists
         const emailExists = await userRepository.findOne({ where: { email } });
         if (emailExists) {
-            res.status(400).json({
-                success: false,
-                message: "Email is already used",
-            });
+            next(new ErrorHandler("Email is already used", 400));
             return;
         }
 
@@ -54,18 +49,19 @@ export const register = async (req: Request, res: Response): Promise<void> => {
             message: "User Registered Successfully",
             user: userWithoutPassword,
         });
-    } catch (error) {
-        console.error("Error registering user:", error);
-        res.status(500).json({
-            success: false,
-            message: "User cannot be registered. Please try again",
-        });
+        // } catch (error) {
+        // console.error("Error registering user:", error);
+        //     res.status(500).json({
+        //         success: false,
+        //         message: "User cannot be registered. Please try again",
+        //     });
+        // }
     }
-};
+);
 
 // login user
-export const login = async (req: Request, res: Response): Promise<void> => {
-    try {
+export const login = catchAsyncErrorHandler(
+    async (req: Request, res: Response, next: NextFunction): Promise<void> => {
         const { email, password } = req.body;
 
         // Check if user exists
@@ -73,10 +69,12 @@ export const login = async (req: Request, res: Response): Promise<void> => {
             where: { email },
         });
         if (!user) {
-            res.status(400).json({
-                success: false,
-                message: "User is not registered,Please signup first",
-            });
+            next(
+                new ErrorHandler(
+                    "User is not registered,Please signup first",
+                    400
+                )
+            );
             return;
         }
 
@@ -88,11 +86,12 @@ export const login = async (req: Request, res: Response): Promise<void> => {
 
             const secret = process.env.JWT_SECRET;
             if (!secret) {
-                res.status(400).json({
-                    success: false,
-                    message:
+                next(
+                    new ErrorHandler(
                         "JWT_SECRET is not defined in environment variables",
-                });
+                        400
+                    )
+                );
                 return;
             }
 
@@ -117,63 +116,57 @@ export const login = async (req: Request, res: Response): Promise<void> => {
                 message: "User Logged in successfully",
             });
         } else {
-            res.status(400).json({
-                success: false,
-                message: "Password is incorrect",
-            });
+            next(new ErrorHandler("Password is incorrect", 400));
+            return;
         }
-    } catch (error) {
-        console.error("Error LoggedIn user:", error);
-        res.status(500).json({
-            success: false,
-            message: "Login Failure, please try again",
-        });
+        // console.error("Error LoggedIn user:", error);
+        //         res.status(500).json({
+        //             success: false,
+        //             message: "Login Failure, please try again",
+        //         });
     }
-};
+);
 
 // logout
-export const logout = async (req: Request, res: Response): Promise<void> => {
-    res.clearCookie("token");
-    res.status(200).json({
-        success: true,
-        message: "User Logged out successfully",
-    });
-};
+export const logout = catchAsyncErrorHandler(
+    async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+        res.clearCookie("token");
+        res.status(200).json({
+            success: true,
+            message: "User Logged out successfully",
+        });
+    }
+);
 
 // get all users
-export const getAllUsers = async (
-    req: Request,
-    res: Response
-): Promise<void> => {
-    try {
+export const getAllUsers = catchAsyncErrorHandler(
+    async (req: Request, res: Response, next: NextFunction): Promise<void> => {
         const users = await userRepository.find();
         res.status(200).json({
             success: true,
-            users: users
-        });
-    } catch (error) {
-        res.status(500).json({
-            success: false,
-            message: "Failed fetching users",
+            users: users,
         });
     }
-};
+);
 
 interface AuthenticatedRequest extends Request {
     user?: User;
 }
 
 // get user
-export const getUser = async (
-    req: AuthenticatedRequest,
-    res: Response
-): Promise<void> => {
-    const user = req.user;
-    res.status(200).json({
-        success: true,
-        user,
-    });
-};
+export const getUser = catchAsyncErrorHandler(
+    async (
+        req: AuthenticatedRequest,
+        res: Response,
+        next: NextFunction
+    ): Promise<void> => {
+        const user = req.user;
+        res.status(200).json({
+            success: true,
+            user,
+        });
+    }
+);
 
 // update profile
 
@@ -181,27 +174,23 @@ interface AuthAndFileRequest extends Request {
     user?: User;
     files?: { [key: string]: UploadedFile | UploadedFile[] } | null;
 }
-export const updateProfile = async (
-    req: AuthAndFileRequest,
-    res: Response
-): Promise<void> => {
-    try {
+export const updateProfile = catchAsyncErrorHandler(
+    async (
+        req: AuthAndFileRequest,
+        res: Response,
+        next: NextFunction
+    ): Promise<void> => {
         const users = await userRepository.find();
-        console.log("users:", users);
 
         const filteredUser = users.filter(
             (user) => user.id !== (req.user as User).id
         );
 
-        console.log("filteredUser:", filteredUser);
-
-        const emailExist = filteredUser.find((user) => user.email === req.body.email);
-        console.log("emailExist:", emailExist);
+        const emailExist = filteredUser.find(
+            (user) => user.email === req.body.email
+        );
         if (emailExist) {
-            res.status(400).json({
-                success: false,
-                message: "Email is already used",
-            });
+            next(new ErrorHandler("Email is already used", 400));
             return;
         }
 
@@ -241,8 +230,6 @@ export const updateProfile = async (
             }
         }
 
-        console.log("userNeWData:", userNewData);
-
         await userRepository.update((req.user as User).id, userNewData);
 
         const updatedUser = await userRepository.findOne({
@@ -254,30 +241,29 @@ export const updateProfile = async (
             user: updatedUser,
             message: "Profile updated successfully",
         });
-    } catch (error) {
-        console.error("Error While Updating Profile:", error);
-        res.status(500).json({
-            success: false,
-            message: "Failed Upadting Profile, please try again",
-        });
+        // catch (error) {
+        //     console.error("Error While Updating Profile:", error);
+        //     res.status(500).json({
+        //         success: false,
+        //         message: "Failed Upadting Profile, please try again",
+        //     });
+        // }
     }
-};
+);
 
 // update Password
-export const updatePassword = async (
-    req: AuthenticatedRequest,
-    res: Response
-): Promise<void> => {
-    try {
+export const updatePassword = catchAsyncErrorHandler(
+    async (
+        req: AuthenticatedRequest,
+        res: Response,
+        next: NextFunction
+    ): Promise<void> => {
         const user = await userRepository.findOne({
             where: { id: (req.user as User).id },
         });
-
+        
         if (!user) {
-            res.status(404).json({
-                success: false,
-                message: "User not found",
-            });
+            next(new ErrorHandler("User not found", 404));
             return;
         }
 
@@ -287,10 +273,7 @@ export const updatePassword = async (
         );
 
         if (!isPasswordMatched) {
-            res.status(400).json({
-                success: false,
-                message: "Old password is incorrect",
-            });
+            next(new ErrorHandler("Current password is incorrect", 400));
             return;
         }
 
@@ -301,11 +284,12 @@ export const updatePassword = async (
             success: true,
             message: "Password updated successfully",
         });
-    } catch (error) {
-        console.error("Error While Updating Password:", error);
-        res.status(500).json({
-            success: false,
-            message: "Failed Upadting Password, please try again",
-        });
+        // catch (error) {
+        //     console.error("Error While Updating Password:", error);
+        //     res.status(500).json({
+        //         success: false,
+        //         message: "Failed Upadting Password, please try again",
+        //     });
+        // }
     }
-};
+);
