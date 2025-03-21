@@ -19,6 +19,12 @@ export const filteredProducts = catchAsyncErrorHandler(
 
         let filteredProducts = await productRepository.find();
 
+        console.log("category:",category)
+        console.log("brand:",brand)
+        console.log("minprice:",minprice)
+        console.log("maxprice:",maxprice)
+        console.log("sortby:",sortby)
+
         if (category) {
             filteredProducts = filteredProducts.filter(
                 (product: Product) =>
@@ -27,10 +33,14 @@ export const filteredProducts = catchAsyncErrorHandler(
             );
         }
         if (brand) {
-            filteredProducts = filteredProducts.filter(
-                (product: Product) =>
-                    product.brand.toLowerCase() ===
-                    (brand as string).toLowerCase()
+            const brandArray = (brand as string)
+                .split(",")
+                .map((b) => b.trim());
+
+            filteredProducts = filteredProducts.filter((product: Product) =>
+                brandArray
+                    .map((b) => b.toLowerCase())
+                    .includes(product.brand.toLowerCase())
             );
         }
         if (minprice) {
@@ -89,7 +99,7 @@ export const sortedProducts = catchAsyncErrorHandler(
             } else if (sortby === "popularity_high_to_low") {
                 sortedProducts = sortedProducts.sort(
                     (a, b) => b.rating - a.rating
-                );
+                ); 
             } else if (sortby === "price_low_to_high") {
                 sortedProducts = sortedProducts.sort(
                     (a, b) => a.retailPrice - b.retailPrice
