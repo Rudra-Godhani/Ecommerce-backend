@@ -2,6 +2,7 @@ import { AppDataSource } from "../config/databaseConnection";
 import { Product } from "../models/Product";
 import { NextFunction, Request, Response } from "express";
 import { catchAsyncErrorHandler } from "../utils/CatchAsyncErrorHandler";
+import { ErrorHandler } from "../middleware/errorHandler";
 
 const productRepository = AppDataSource.getRepository(Product);
 
@@ -9,18 +10,12 @@ export const getAllProducts = catchAsyncErrorHandler(
     async (req: Request, res: Response, next: NextFunction) => {
         const products = await productRepository.find();
         res.status(200).json({ succcess: true, products: products });
-        // catch (error) {
-        //     res.status(500).json({
-        //         success: false,
-        //         message: "Failed fetching products.",
-        //     });
-        // }
     }
 );
 
 export const filteredProducts = catchAsyncErrorHandler(
     async (req: Request, res: Response, nest: NextFunction) => {
-        const { category, brand, minPrice, maxPrice, sortby } = req.query;
+        const { category, brand, minprice, maxprice, sortby } = req.query;
 
         let filteredProducts = await productRepository.find();
 
@@ -38,15 +33,15 @@ export const filteredProducts = catchAsyncErrorHandler(
                     (brand as string).toLowerCase()
             );
         }
-        if (minPrice) {
+        if (minprice) {
             filteredProducts = filteredProducts.filter(
-                (product) => product.retailPrice >= Number(minPrice)
+                (product) => product.retailPrice >= Number(minprice)
             );
         }
 
-        if (maxPrice) {
+        if (maxprice) {
             filteredProducts = filteredProducts.filter(
-                (product) => product.retailPrice <= Number(maxPrice)
+                (product) => product.retailPrice <= Number(maxprice)
             );
         }
 
@@ -75,13 +70,6 @@ export const filteredProducts = catchAsyncErrorHandler(
             filteredProducts,
             length: filteredProducts.length,
         });
-        // catch (error) {
-        //     console.error("Error filtering products:", error);
-        //     res.status(500).json({
-        //         success: false,
-        //         message: "Products cannot be filtered",
-        //     });
-        // }
     }
 );
 
@@ -118,35 +106,39 @@ export const sortedProducts = catchAsyncErrorHandler(
             sortedProducts,
             length: filteredProducts.length,
         });
-        // catch (error) {
-        //     console.error("Error sorting products:", error);
-        //     res.status(500).json({
-        //         success: false,
-        //         message: "Products cannot be sorted",
-        //     });
-        // }
     }
 );
 
-export const searchProducts = catchAsyncErrorHandler(
+export const searchedProducts = catchAsyncErrorHandler(
     async (req: Request, res: Response, next: NextFunction) => {
-        const { searchKeyword } = req.query;
-        console.log("searchKeyword:",searchKeyword);
+        const { searchkeyword } = req.query;
 
-        
+        if (!searchkeyword) {
+            next(
+                new ErrorHandler("Please provide a valid search keyword", 400)
+            );
+            return;
+        }
 
+        const keyword = `%${(searchkeyword as string).toLowerCase()}%`;
+
+        const products = await productRepository
+            .createQueryBuilder("product")
+            .where(
+                `
+                product.title ILIKE :keyword OR
+                product.brand ILIKE :keyword OR
+                product.category ILIKE :keyword OR
+                product.descriptionSmall ILIKE :keyword
+                `,
+                { keyword }
+            )
+            .getMany();
 
         res.status(200).json({
             status: true,
-            sortedProducts,
-            length: filteredProducts.length,
+            products,
+            length: products.length,
         });
-        //  catch (error) {
-        //     console.error("Error sorting products:", error);
-        //     res.status(500).json({
-        //         success: false,
-        //         message: "Products cannot be sorted",
-        //     });
-        // }
     }
 );
