@@ -55,6 +55,8 @@ export const filteredProducts = catchAsyncErrorHandler(
             );
         }
 
+        
+
         if (sortby) {
             if (sortby === "popularity_low_to_high") {
                 filteredProducts = filteredProducts.sort(
@@ -83,54 +85,18 @@ export const filteredProducts = catchAsyncErrorHandler(
     }
 );
 
-export const sortedProducts = catchAsyncErrorHandler(
-    async (req: Request, res: Response, next: NextFunction) => {
-        const { sortby } = req.query;
-        console.log(req.query);
-
-        let sortedProducts = await productRepository.find();
-        console.log(sortby);
-
-        if (sortby) {
-            if (sortby === "popularity_low_to_high") {
-                sortedProducts = sortedProducts.sort(
-                    (a, b) => a.rating - b.rating
-                );
-            } else if (sortby === "popularity_high_to_low") {
-                sortedProducts = sortedProducts.sort(
-                    (a, b) => b.rating - a.rating
-                ); 
-            } else if (sortby === "price_low_to_high") {
-                sortedProducts = sortedProducts.sort(
-                    (a, b) => a.retailPrice - b.retailPrice
-                );
-            } else if (sortby === "price_high_to_low") {
-                sortedProducts = sortedProducts.sort(
-                    (a, b) => b.retailPrice - a.retailPrice
-                );
-            }
-        }
-
-        res.status(200).json({
-            status: true,
-            sortedProducts,
-            length: filteredProducts.length,
-        });
-    }
-);
-
 export const searchedProducts = catchAsyncErrorHandler(
     async (req: Request, res: Response, next: NextFunction) => {
-        const { searchkeyword } = req.query;
+        const { search } = req.query;
 
-        if (!searchkeyword) {
+        if (!search) {
             next(
                 new ErrorHandler("Please provide a valid search keyword", 400)
             );
             return;
         }
 
-        const keyword = `%${(searchkeyword as string).toLowerCase()}%`;
+        const keyword = `%${(search as string).toLowerCase()}%`;
 
         const products = await productRepository
             .createQueryBuilder("product")

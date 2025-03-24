@@ -1,7 +1,4 @@
 import cloudinary from "cloudinary";
-import dotenv from "dotenv";
-
-dotenv.config();
 
 export const cloudinaryConnect = () => {
     try {

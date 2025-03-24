@@ -2,7 +2,6 @@ import { NextFunction, Request, Response } from "express";
 import { AppDataSource } from "../config/databaseConnection";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
-import dotenv from "dotenv";
 import { v2 as cloudinary } from "cloudinary";
 import { UploadedFile } from "express-fileupload";
 import { User } from "../models/User";
@@ -10,7 +9,6 @@ import nodemailer from "nodemailer";
 import { catchAsyncErrorHandler } from "../utils/CatchAsyncErrorHandler";
 import { ErrorHandler } from "../middleware/errorHandler";
 
-dotenv.config();
 
 const userRepository = AppDataSource.getRepository(User);
 
