@@ -7,12 +7,32 @@ import { UploadedFile } from "express-fileupload";
 import { User } from "../models/User";
 import { catchAsyncErrorHandler } from "../utils/CatchAsyncErrorHandler";
 import { ErrorHandler } from "../middleware/errorHandler";
+import { validate } from "class-validator";
 
 const userRepository = AppDataSource.getRepository(User);
 
 export const register = catchAsyncErrorHandler(
     async (req: Request, res: Response, next: NextFunction): Promise<void> => {
         const { name, email, password } = req.body;
+
+        const newUser = userRepository.create({
+            name,
+            email,
+            password,
+        });
+
+        const validationErrors = await validate(newUser, {
+            skipMissingProperties: true,
+        });
+        if (validationErrors.length > 0) {
+            next(
+                new ErrorHandler(
+                    Object.values(validationErrors[0].constraints!)[0],
+                    400
+                )
+            );
+            return;
+        }
 
         // Check if username exists
         const usernameExists = await userRepository.findOne({
@@ -32,11 +52,8 @@ export const register = catchAsyncErrorHandler(
 
         // Hash password
         const hashedPassword = await bcrypt.hash(password, 10);
-        const newUser = userRepository.create({
-            name,
-            email,
-            password: hashedPassword,
-        });
+        newUser.password = hashedPassword;
+
         await userRepository.save(newUser);
 
         const { password: _, ...userWithoutPassword } = newUser;
@@ -60,6 +77,23 @@ export const register = catchAsyncErrorHandler(
 export const login = catchAsyncErrorHandler(
     async (req: Request, res: Response, next: NextFunction): Promise<void> => {
         const { email, password } = req.body;
+
+        const userToValidate = userRepository.create({
+            email,
+            password,
+        });
+        const validationErrors = await validate(userToValidate, {
+            skipMissingProperties: true,
+        });
+        if (validationErrors.length > 0) {
+            next(
+                new ErrorHandler(
+                    Object.values(validationErrors[0].constraints!)[0],
+                    400
+                )
+            );
+            return;
+        }
 
         // Check if user exists
         const user = await userRepository.findOne({
@@ -177,6 +211,33 @@ export const updateProfile = catchAsyncErrorHandler(
         res: Response,
         next: NextFunction
     ): Promise<void> => {
+        const { name, email, phoneNumber, address } = req.body;
+
+        let userNewData = userRepository.create({
+            name: name,
+            email: email,
+            profileImage: (req.user as User).profileImage,
+        });
+        if (phoneNumber) {
+            userNewData.phoneNumber = phoneNumber;
+        }
+        if (address) {
+            userNewData.address = address;
+        }
+
+        const validationErrors = await validate(userNewData, {
+            skipMissingProperties: true,
+        });
+        if (validationErrors.length > 0) {
+            next(
+                new ErrorHandler(
+                    Object.values(validationErrors[0].constraints!)[0],
+                    400
+                )
+            );
+            return;
+        }
+
         const users = await userRepository.find();
 
         const filteredUser = users.filter(
@@ -190,16 +251,6 @@ export const updateProfile = catchAsyncErrorHandler(
             next(new ErrorHandler("Email is already used", 400));
             return;
         }
-
-        const userNewData = {
-            name: req.body.name,
-            email: req.body.email,
-            phoneNumber: Number(req.body.phoneNumber),
-            address: req.body.address,
-            profileImage: (req.user as User).profileImage,
-        };
-
-        console.log(userNewData);
 
         if (req.files && req.files.profileImage) {
             const profileImage = req.files.profileImage;
@@ -255,10 +306,42 @@ export const updatePassword = catchAsyncErrorHandler(
         res: Response,
         next: NextFunction
     ): Promise<void> => {
+        const { currentPassword, newPassword, confirmPassword } = req.body;
+
+        if (!currentPassword) {
+            return next(new ErrorHandler("Current password is required.", 400));
+        }
+
+        const userToValidate = userRepository.create({
+            password: newPassword,
+        });
+
+        const validationErrors = await validate(userToValidate, {
+            skipMissingProperties: true,
+        });
+        if (validationErrors.length > 0) {
+            next(
+                new ErrorHandler(
+                    Object.values(validationErrors[0].constraints!)[0],
+                    400
+                )
+            );
+            return;
+        }
+
+        if (newPassword !== confirmPassword) {
+            return next(
+                new ErrorHandler(
+                    "NewPassword and ConfirmNewPassword don't match.",
+                    400
+                )
+            );
+        }
+
         const user = await userRepository.findOne({
             where: { id: (req.user as User).id },
         });
-        
+
         if (!user) {
             next(new ErrorHandler("User not found", 404));
             return;
