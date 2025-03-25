@@ -98,7 +98,7 @@ export const searchedProducts = catchAsyncErrorHandler(
 
         const keyword = `%${(search as string).toLowerCase()}%`;
 
-        const products = await productRepository
+        const searchedProducts = await productRepository
             .createQueryBuilder("product")
             .where(
                 `
@@ -113,8 +113,8 @@ export const searchedProducts = catchAsyncErrorHandler(
 
         res.status(200).json({
             status: true,
-            products,
-            length: products.length,
+            searchedProducts,
+            length: searchedProducts.length,    
         });
     }
 );
