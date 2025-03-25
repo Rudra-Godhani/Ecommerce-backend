@@ -8,7 +8,7 @@ import { User } from "../models/User";
 import nodemailer from "nodemailer";
 import { catchAsyncErrorHandler } from "../utils/CatchAsyncErrorHandler";
 import { ErrorHandler } from "../middleware/errorHandler";
-
+import { validate } from "class-validator";
 
 const userRepository = AppDataSource.getRepository(User);
 
@@ -16,6 +16,23 @@ const userRepository = AppDataSource.getRepository(User);
 export const forgotPassword = catchAsyncErrorHandler(
     async (req: Request, res: Response, next: NextFunction): Promise<void> => {
         const { email } = req.body;
+
+        const userToValidate = userRepository.create({
+            email,
+        });
+
+        const validationErrors = await validate(userToValidate, {
+            skipMissingProperties: true,
+        });
+        if (validationErrors.length > 0) {
+            next(
+                new ErrorHandler(
+                    Object.values(validationErrors[0].constraints!)[0],
+                    400
+                )
+            );
+            return;
+        }
 
         // Check if username exists
         const user = await userRepository.findOne({
@@ -93,7 +110,33 @@ export const forgotPassword = catchAsyncErrorHandler(
 export const resetPassword = catchAsyncErrorHandler(
     async (req: Request, res: Response, next: NextFunction): Promise<void> => {
         const { token } = req.params;
-        const { newPassword } = req.body;
+        const { newPassword, confirmPassword } = req.body;
+
+        const userToValidate = userRepository.create({
+            password: newPassword,
+        });
+
+        const validationErrors = await validate(userToValidate, {
+            skipMissingProperties: true,
+        });
+        if (validationErrors.length > 0) {
+            next(
+                new ErrorHandler(
+                    Object.values(validationErrors[0].constraints!)[0],
+                    400
+                )
+            );
+            return;
+        }
+
+        if (newPassword !== confirmPassword) {
+            next(
+                new ErrorHandler(
+                    "NewPassword and ConfirmNewPassword don't match.",
+                    400
+                )
+            );
+        }
 
         if (!token) {
             next(new ErrorHandler("token is missing.", 404));
