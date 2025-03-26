@@ -3,8 +3,12 @@ import { Product } from "../models/Product";
 import { NextFunction, Request, Response } from "express";
 import { catchAsyncErrorHandler } from "../utils/CatchAsyncErrorHandler";
 import { ErrorHandler } from "../middleware/errorHandler";
+import { Cart, CartItem } from "../models/Cart";
+import { User } from "../models/User";
 
 const productRepository = AppDataSource.getRepository(Product);
+const cartRepository = AppDataSource.getRepository(Cart);
+const cartItemRepository = AppDataSource.getRepository(CartItem);
 
 export const getAllProducts = catchAsyncErrorHandler(
     async (req: Request, res: Response, next: NextFunction) => {
@@ -19,11 +23,11 @@ export const filteredProducts = catchAsyncErrorHandler(
 
         let filteredProducts = await productRepository.find();
 
-        console.log("category:",category)
-        console.log("brand:",brand)
-        console.log("minprice:",minprice)
-        console.log("maxprice:",maxprice)
-        console.log("sortby:",sortby)
+        console.log("category:", category);
+        console.log("brand:", brand);
+        console.log("minprice:", minprice);
+        console.log("maxprice:", maxprice);
+        console.log("sortby:", sortby);
 
         if (category) {
             filteredProducts = filteredProducts.filter(
@@ -54,8 +58,6 @@ export const filteredProducts = catchAsyncErrorHandler(
                 (product) => product.retailPrice <= Number(maxprice)
             );
         }
-
-        
 
         if (sortby) {
             if (sortby === "popularity_low_to_high") {
@@ -114,7 +116,77 @@ export const searchedProducts = catchAsyncErrorHandler(
         res.status(200).json({
             status: true,
             searchedProducts,
-            length: searchedProducts.length,    
+            length: searchedProducts.length,
+        });
+    }
+);
+
+export const addProductToCart = catchAsyncErrorHandler(
+    async (req: Request, res: Response, next: NextFunction) => {
+        const { userId, productId } = req.body;
+
+        if (!userId) {
+            next(new ErrorHandler("User ID is required", 400));
+            return;
+        }
+        if (!productId) {
+            next(new ErrorHandler("Product ID is required", 400));
+            return;
+        }
+
+        const product = await productRepository.findOne({
+            where: { id: productId },
+        });
+
+        if (!product) {
+            next(new ErrorHandler("Product does not exist", 404));
+            return;
+        }
+
+        let cart = await cartRepository.findOne({
+            where: { user: { id: userId } },
+            relations: { cartItems: true },
+        });
+
+        if (!cart) {
+            cart = new Cart();
+            cart.user = { id: userId } as User;
+            cart.cartItems = [];
+            await cartRepository.save(cart);
+        }
+
+        const existingCartItem = cart.cartItems.find(
+            (item) => item.product.id === productId
+        );
+
+        if(existingCartItem){
+            existingCartItem.quantity += 1;
+            await cartItemRepository.save(existingCartItem);
+        }else{
+            const cartItem = new CartItem();
+            cartItem.cart = cart;
+            cartItem.product = product;
+            cartItem.quantity = 1;
+            await cartItemRepository.save(cartItem);
+            cart.cartItems.push(cartItem);
+            await cartRepository.save(cart);
+        }
+
+        res.status(201).json({
+            success: true,
+            message: "product added to cart",
+            cart
+        });
+    }
+);
+
+export const getCart = catchAsyncErrorHandler(
+    async (req: Request, res: Response, next: NextFunction) => {
+        const cartData = await cartRepository.find();
+        res.status(201).json({
+            success: true,
+            cartData,
+            message: "product added to cart",
         });
     }
 );

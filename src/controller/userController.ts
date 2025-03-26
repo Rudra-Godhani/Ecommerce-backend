@@ -127,7 +127,7 @@ export const login = catchAsyncErrorHandler(
             }
 
             const token = jwt.sign(payload, secret, {
-                expiresIn: "7d",
+                expiresIn: "1m",
             });
 
             user.token = token;
@@ -135,14 +135,14 @@ export const login = catchAsyncErrorHandler(
             const { password: _, ...userWithoutPassword } = user;
 
             const options = {
-                expires: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+                expires: new Date(Date.now() + 1 * 60 * 1000),
                 httpOnly: true,
                 secure: true,
             };
 
             res.cookie("token", token, options).status(200).json({
                 success: true,
-                token,
+                token,  
                 user: userWithoutPassword,
                 message: "User Logged in successfully",
             });
