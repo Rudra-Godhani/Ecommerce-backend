@@ -5,9 +5,9 @@ import jwt from "jsonwebtoken";
 import { v2 as cloudinary } from "cloudinary";
 import { UploadedFile } from "express-fileupload";
 import { User } from "../models/User";
-import { catchAsyncErrorHandler } from "../utils/CatchAsyncErrorHandler";
 import { ErrorHandler } from "../middleware/errorHandler";
 import { validate } from "class-validator";
+import { catchAsyncErrorHandler } from "../utils/CatchAsyncErrorHandler";
 
 const userRepository = AppDataSource.getRepository(User);
 
@@ -127,7 +127,7 @@ export const login = catchAsyncErrorHandler(
             }
 
             const token = jwt.sign(payload, secret, {
-                expiresIn: "1m",
+                expiresIn: "7d",
             });
 
             user.token = token;
@@ -135,7 +135,7 @@ export const login = catchAsyncErrorHandler(
             const { password: _, ...userWithoutPassword } = user;
 
             const options = {
-                expires: new Date(Date.now() + 1 * 60 * 1000),
+                expires: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
                 httpOnly: true,
                 secure: true,
             };
