@@ -68,11 +68,32 @@ export const addProductToCart = catchAsyncErrorHandler(
         }
 
         await cartRepository.save(cart);
-        res.status(201).json({
-            success: true,
-            message: "product added to cart",
-            cart,
-        });
+
+        const cartData = {
+            id: cart.id,
+            cartItems: cart.cartItems.map((item) => ({
+                id: item.id,
+                quantity: item.quantity,
+                product: item.product,
+                createdAt: item.createdAt,
+                updatedAt: item.updatedAt,
+            })),
+            user: cart.user,
+            createdAt: cart.createdAt,
+            updatedAt: cart.updatedAt,
+        };
+        if (existingCartItem) {
+            res.status(201).json({
+                success: true,
+                cartData,
+            });
+        } else {
+            res.status(201).json({
+                success: true,
+                message: "product added to cart",
+                cartData,
+            });
+        }
     }
 );
 
@@ -123,10 +144,22 @@ export const increaseQuantity = catchAsyncErrorHandler(
         existingCartItem.quantity += 1;
 
         await cartRepository.save(cart);
+        const cartData = {
+            id: cart.id,
+            cartItems: cart.cartItems.map((item) => ({
+                id: item.id,
+                quantity: item.quantity,
+                product: item.product,
+                createdAt: item.createdAt,
+                updatedAt: item.updatedAt,
+            })),
+            user: cart.user,
+            createdAt: cart.createdAt,
+            updatedAt: cart.updatedAt,
+        };
         res.status(201).json({
             success: true,
-            message: "product quantity increased",
-            cart,
+            cartData,
         });
     }
 );
@@ -172,10 +205,23 @@ export const removeProductFromCart = catchAsyncErrorHandler(
         await cartItemRepository.remove(cartItem);
 
         await cartRepository.save(cart);
+        const cartData = {
+            id: cart.id,
+            cartItems: cart.cartItems.map((item) => ({
+                id: item.id,
+                quantity: item.quantity,
+                product: item.product,
+                createdAt: item.createdAt,
+                updatedAt: item.updatedAt,
+            })),
+            user: cart.user,
+            createdAt: cart.createdAt,
+            updatedAt: cart.updatedAt,
+        };
         res.status(201).json({
             success: true,
-            message: "Product removed to cart",
-            cart,
+            message: "Product removed from cart",
+            cartData,
         });
     }
 );
@@ -216,14 +262,32 @@ export const decreaseQuantity = catchAsyncErrorHandler(
         }
 
         cartItem.quantity -= 1;
+        if (cartItem.quantity <= 0) {
+            cart.cartItems = cart.cartItems.filter(
+                (item) => item.product.id !== productId
+            );
+            await cartItemRepository.remove(cartItem);
+        }
         await cartRepository.save(cart);
+        const cartData = {
+            id: cart.id,
+            cartItems: cart.cartItems.map((item) => ({
+                id: item.id,
+                quantity: item.quantity,
+                product: item.product,
+                createdAt: item.createdAt,
+                updatedAt: item.updatedAt,
+            })),
+            user: cart.user,
+            createdAt: cart.createdAt,
+            updatedAt: cart.updatedAt,
+        };
         res.status(201).json({
             success: true,
-            cart,
+            cartData,
         });
     }
 );
-
 
 export const getCart = catchAsyncErrorHandler(
     async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
@@ -239,10 +303,23 @@ export const getCart = catchAsyncErrorHandler(
             return;
         }
 
+        const cartData = {
+            id: cart.id,
+            cartItems: cart.cartItems.map((item) => ({
+                id: item.id,
+                quantity: item.quantity,
+                product: item.product,
+                createdAt: item.createdAt,
+                updatedAt: item.updatedAt,
+            })),
+            user: cart.user,
+            createdAt: cart.createdAt,
+            updatedAt: cart.updatedAt,
+        };
+
         res.status(201).json({
             success: true,
-            message: "Cart retrieved successfully",
-            cart,
+            cartData,
         });
     }
 );
