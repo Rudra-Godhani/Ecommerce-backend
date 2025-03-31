@@ -18,16 +18,16 @@ interface AuthenticatedRequest extends Request {
 export const addProductToCart = catchAsyncErrorHandler(
     async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
         const userId = req.user?.id;
-        const { productId } = req.body;
+        const { productId, color } = req.body;
+
+        if (!productId || !color) {
+            next(new ErrorHandler("Product ID and color is required", 400));
+            return;
+        }
 
         const user = await userRepository.find({ where: { id: userId } });
         if (!user) {
             next(new ErrorHandler("User not found", 404));
-            return;
-        }
-
-        if (!productId) {
-            next(new ErrorHandler("Product id is required", 400));
             return;
         }
 
@@ -63,27 +63,21 @@ export const addProductToCart = catchAsyncErrorHandler(
             cartItem.cart = cart;
             cartItem.product = product;
             cartItem.quantity = 1;
+            cartItem.color = color;
             await cartItemRepository.save(cartItem);
             cart.cartItems.push(cartItem);
         }
 
         await cartRepository.save(cart);
 
-        const cartData = {
-            id: cart.id,
-            cartItems: cart.cartItems.map((item) => ({
-                id: item.id,
-                quantity: item.quantity,
-                product: item.product,
-                createdAt: item.createdAt,
-                updatedAt: item.updatedAt,
-            })),
-            user: cart.user,
-            createdAt: cart.createdAt,
-            updatedAt: cart.updatedAt,
-        };
+        const cartData = cart.cartItems.map((item) => ({
+            quantity: item.quantity,
+            product: item.product,
+            color: item.color,
+        }));
+
         if (existingCartItem) {
-            res.status(201).json({
+            res.status(200).json({
                 success: true,
                 cartData,
             });
@@ -102,14 +96,14 @@ export const increaseQuantity = catchAsyncErrorHandler(
         const userId = req.user?.id;
         const { productId } = req.body;
 
-        const user = await userRepository.find({ where: { id: userId } });
-        if (!user) {
-            next(new ErrorHandler("User not found", 404));
+        if (!productId) {
+            next(new ErrorHandler("Product ID is required", 400));
             return;
         }
 
-        if (!productId) {
-            next(new ErrorHandler("Product id is required", 400));
+        const user = await userRepository.find({ where: { id: userId } });
+        if (!user) {
+            next(new ErrorHandler("User not found", 404));
             return;
         }
 
@@ -127,8 +121,8 @@ export const increaseQuantity = catchAsyncErrorHandler(
             relations: ["cartItems", "cartItems.product"],
         });
 
-        if (!cart) {
-            next(new ErrorHandler("Cart not found", 404));
+        if (!cart || cart.cartItems.length === 0) {
+            next(new ErrorHandler("Cart not found or empty", 404));
             return;
         }
 
@@ -144,20 +138,13 @@ export const increaseQuantity = catchAsyncErrorHandler(
         existingCartItem.quantity += 1;
 
         await cartRepository.save(cart);
-        const cartData = {
-            id: cart.id,
-            cartItems: cart.cartItems.map((item) => ({
-                id: item.id,
-                quantity: item.quantity,
-                product: item.product,
-                createdAt: item.createdAt,
-                updatedAt: item.updatedAt,
-            })),
-            user: cart.user,
-            createdAt: cart.createdAt,
-            updatedAt: cart.updatedAt,
-        };
-        res.status(201).json({
+        const cartData = cart.cartItems.map((item) => ({
+            quantity: item.quantity,
+            product: item.product,
+            color: item.color,
+        }));
+
+        res.status(200).json({
             success: true,
             cartData,
         });
@@ -170,7 +157,7 @@ export const removeProductFromCart = catchAsyncErrorHandler(
         const { productId } = req.body;
 
         if (!productId) {
-            next(new ErrorHandler("Product id is required", 400));
+            next(new ErrorHandler("Product ID is required", 400));
             return;
         }
 
@@ -185,8 +172,8 @@ export const removeProductFromCart = catchAsyncErrorHandler(
             relations: ["cartItems", "cartItems.product"],
         });
 
-        if (!cart) {
-            next(new ErrorHandler("Cart not found", 404));
+        if (!cart || cart.cartItems.length === 0) {
+            next(new ErrorHandler("Cart not found or empty", 404));
             return;
         }
 
@@ -205,20 +192,13 @@ export const removeProductFromCart = catchAsyncErrorHandler(
         await cartItemRepository.remove(cartItem);
 
         await cartRepository.save(cart);
-        const cartData = {
-            id: cart.id,
-            cartItems: cart.cartItems.map((item) => ({
-                id: item.id,
-                quantity: item.quantity,
-                product: item.product,
-                createdAt: item.createdAt,
-                updatedAt: item.updatedAt,
-            })),
-            user: cart.user,
-            createdAt: cart.createdAt,
-            updatedAt: cart.updatedAt,
-        };
-        res.status(201).json({
+        const cartData = cart.cartItems.map((item) => ({
+            quantity: item.quantity,
+            product: item.product,
+            color: item.color,
+        }));
+
+        res.status(200).json({
             success: true,
             message: "Product removed from cart",
             cartData,
@@ -232,13 +212,22 @@ export const decreaseQuantity = catchAsyncErrorHandler(
         const { productId } = req.body;
 
         if (!productId) {
-            next(new ErrorHandler("Product id is required", 400));
+            next(new ErrorHandler("Product ID is required", 400));
             return;
         }
 
         const user = await userRepository.findOne({ where: { id: userId } });
         if (!user) {
             next(new ErrorHandler("User not found", 404));
+            return;
+        }
+
+        const product = await productRepository.findOne({
+            where: { id: productId },
+        });
+
+        if (!product) {
+            next(new ErrorHandler("Product does not exist", 404));
             return;
         }
 
@@ -269,20 +258,13 @@ export const decreaseQuantity = catchAsyncErrorHandler(
             await cartItemRepository.remove(cartItem);
         }
         await cartRepository.save(cart);
-        const cartData = {
-            id: cart.id,
-            cartItems: cart.cartItems.map((item) => ({
-                id: item.id,
-                quantity: item.quantity,
-                product: item.product,
-                createdAt: item.createdAt,
-                updatedAt: item.updatedAt,
-            })),
-            user: cart.user,
-            createdAt: cart.createdAt,
-            updatedAt: cart.updatedAt,
-        };
-        res.status(201).json({
+        const cartData = cart.cartItems.map((item) => ({
+            quantity: item.quantity,
+            product: item.product,
+            color: item.color,
+        }));
+
+        res.status(200).json({
             success: true,
             cartData,
         });
@@ -299,25 +281,21 @@ export const getCart = catchAsyncErrorHandler(
         });
 
         if (!cart) {
-            next(new ErrorHandler("Cart not found", 404));
+            res.status(200).json({
+                success: true,
+                message: "Cart is Empty",
+                cartData: [],
+            });
             return;
         }
 
-        const cartData = {
-            id: cart.id,
-            cartItems: cart.cartItems.map((item) => ({
-                id: item.id,
-                quantity: item.quantity,
-                product: item.product,
-                createdAt: item.createdAt,
-                updatedAt: item.updatedAt,
-            })),
-            user: cart.user,
-            createdAt: cart.createdAt,
-            updatedAt: cart.updatedAt,
-        };
+        const cartData = cart.cartItems.map((item) => ({
+            quantity: item.quantity,
+            product: item.product,
+            color: item.color,
+        }));
 
-        res.status(201).json({
+        res.status(200).json({
             success: true,
             cartData,
         });
