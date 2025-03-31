@@ -1292,7 +1292,7 @@ export const productsData: Product[] = [
             "https://images.pexels.com/photos/264819/pexels-photo-264819.jpeg?auto=compress&cs=tinysrgb&w=600",
             "https://images.pexels.com/photos/932587/pexels-photo-932587.jpeg?auto=compress&cs=tinysrgb&w=600",
         ],
-        colors: [],
+        colors: ["#FFC0CB", "#FFFF00"],
         availability: true,
         reviewsText: [
             "Smells divine!",
