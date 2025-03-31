@@ -17,10 +17,11 @@ interface AuthenticatedRequest extends Request {
 export const addProductToWishList = catchAsyncErrorHandler(
     async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
         const userId = req.user?.id;
-        const { productId } = req.body;
+        const { productId, color } = req.body;
 
-        if (!productId) {
-            next(new ErrorHandler("Product id is required.", 400));
+        if (!productId || !color) {
+            next(new ErrorHandler("Product ID and color is required.", 400));
+            return;
         }
 
         const user = await userRepository.findOne({ where: { id: userId } });
@@ -54,23 +55,33 @@ export const addProductToWishList = catchAsyncErrorHandler(
             (item) => item.product.id === productId
         );
 
-        if (existingWishListItem) {
-            next(new ErrorHandler("Product already exists in wishlist", 400));
-            return;
-        } else {
+        if (!existingWishListItem) {
             const wishListItem = new WishListItem();
             wishListItem.wishList = wishList;
             wishListItem.product = product;
+            wishListItem.color = color;
             await wishListItemRepository.save(wishListItem);
             wishList.wishListItems.push(wishListItem);
+            await wishListRepository.save(wishList);
         }
 
-        await wishListRepository.save(wishList);
-        res.status(201).json({
-            success: true,
-            message: "product added to wishlist",
-            wishList,
-        });
+        const wishListData = wishList.wishListItems.map((item) => ({
+            product: item.product,
+            color: item.color,
+        }));
+
+        if (existingWishListItem) {
+            res.status(200).json({
+                success: true,
+                wishListData,
+            });
+        } else {
+            res.status(201).json({
+                success: true,
+                message: "product added to wishlist",
+                wishListData,
+            });
+        }
     }
 );
 
@@ -80,7 +91,8 @@ export const removeProductFromWishList = catchAsyncErrorHandler(
         const { productId } = req.body;
 
         if (!productId) {
-            next(new ErrorHandler("Product id is required.", 400));
+            next(new ErrorHandler("Product ID is required.", 400));
+            return;
         }
 
         const user = await userRepository.findOne({ where: { id: userId } });
@@ -94,8 +106,8 @@ export const removeProductFromWishList = catchAsyncErrorHandler(
             relations: ["wishListItems", "wishListItems.product"],
         });
 
-        if (!wishList) {
-            next(new ErrorHandler("Wishlist not found", 404));
+        if (!wishList || wishList.wishListItems.length === 0) {
+            next(new ErrorHandler("Wishlist not found or empty", 404));
             return;
         }
 
@@ -112,12 +124,17 @@ export const removeProductFromWishList = catchAsyncErrorHandler(
         });
 
         await wishListItemRepository.remove(wishListItem);
-
         await wishListRepository.save(wishList);
-        res.status(201).json({
+
+        const wishListData = wishList.wishListItems.map((item) => ({
+            product: item.product,
+            color: item.color,
+        }));
+
+        res.status(200).json({
             success: true,
             message: "product removed from wishlist",
-            wishList,
+            wishListData,
         });
     }
 );
@@ -132,14 +149,23 @@ export const getWishList = catchAsyncErrorHandler(
         });
 
         if (!wishList) {
-            next(new ErrorHandler("wishlist not found", 404));
+            res.status(200).json({
+                success: true,
+                message: "wishlist is Empty",
+                wishList: [],
+            });
             return;
         }
 
-        res.status(201).json({
-            success: true,  
+        const wishListData = wishList.wishListItems.map((item) => ({
+            product: item.product,
+            color: item.color,
+        }));
+
+        res.status(200).json({
+            success: true,
             message: "wishlist retrieved successfully",
-            wishList,
+            wishListData,
         });
     }
 );
