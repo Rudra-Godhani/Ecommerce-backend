@@ -19,7 +19,7 @@ export class WishList {
     id!: string;
 
     @OneToMany(() => WishListItem, (wishListItem) => wishListItem.wishList, {
-        cascade: true
+        cascade: true,
     })
     wishListItems!: WishListItem[];
 
@@ -44,6 +44,9 @@ export class WishListItem {
         onDelete: "CASCADE",
     })
     wishList!: WishList;
+
+    @Column()
+    color!: string;
 
     @ManyToOne(() => Product, { eager: true })
     product!: Product;
