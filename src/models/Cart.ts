@@ -19,7 +19,7 @@ export class Cart {
     id!: string;
 
     @OneToMany(() => CartItem, (cartItem) => cartItem.cart, {
-        cascade: true
+        cascade: true,
     })
     cartItems!: CartItem[];
 
@@ -45,6 +45,9 @@ export class CartItem {
 
     @Column({ type: "int" })
     quantity!: number;
+
+    @Column()
+    color!: string;
 
     @ManyToOne(() => Product, { eager: true })
     product!: Product;
