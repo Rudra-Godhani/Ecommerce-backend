@@ -4,7 +4,58 @@ import {
     Column,
     CreateDateColumn,
     UpdateDateColumn,
+    OneToMany,
+    ManyToOne,
 } from "typeorm";
+
+@Entity()
+export class Category {
+    @PrimaryGeneratedColumn("uuid")
+    id!: string;
+
+    @Column()
+    name!: string;
+
+    @OneToMany(() => Product, (product) => product.category, {
+        cascade: true,
+    })
+    products!: Product[];
+
+    @OneToMany(() => Brand, (brand) => brand.category, {
+        cascade: true,
+    })
+    brands!: Brand[];
+
+    @CreateDateColumn({ type: "timestamp" })
+    createdAt!: Date;
+
+    @UpdateDateColumn({ type: "timestamp" })
+    updatedAt!: Date;
+}
+
+@Entity()
+export class Brand {
+    @PrimaryGeneratedColumn("uuid")
+    id!: string;
+
+    @Column()
+    name!: string;
+
+    @ManyToOne(() => Category, (category) => category.brands, {
+        onDelete: "CASCADE",
+        eager: true
+    })
+    category!: Category;
+
+    @OneToMany(() => Product, (product) => product.brand)
+    products!: Product[];
+
+    @CreateDateColumn({ type: "timestamp" })
+    createdAt!: Date;
+
+    @UpdateDateColumn({ type: "timestamp" })
+    updatedAt!: Date;
+}
 
 @Entity()
 export class Product {
@@ -23,7 +74,7 @@ export class Product {
     @Column({ type: "float" })
     price!: number;
 
-    @Column({ type: "float"})
+    @Column({ type: "float" })
     retailPrice!: number;
 
     @Column({ type: "jsonb" })
@@ -44,11 +95,17 @@ export class Product {
     @Column({ type: "float" })
     rating!: number;
 
-    @Column()
-    brand!: string;
+    @ManyToOne(() => Category, (category) => category.products, {
+        onDelete: "CASCADE",
+        eager: true,
+    })
+    category!: Category;
 
-    @Column()
-    category!: string;
+    @ManyToOne(() => Brand, (brand) => brand.products, {
+        onDelete: "CASCADE",
+        eager: true,
+    })
+    brand!: Brand;
 
     @Column()
     additionalInformation!: string;
