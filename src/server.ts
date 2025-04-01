@@ -54,7 +54,7 @@ const startServer = async () => {
     cloudinaryConnect();
 
     // insert data to database
-    // await insertData();
+    await insertData();
 };
 
 startServer();
