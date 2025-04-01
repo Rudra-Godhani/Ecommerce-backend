@@ -16,6 +16,7 @@ export const insertData = async () => {
         }
 
         for (const productData of productsData) {
+            // Fetch or create category
             let category = await categoryRepository.findOne({
                 where: { name: productData.category },
             });
@@ -26,17 +27,26 @@ export const insertData = async () => {
                 await categoryRepository.save(category);
             }
 
+            // Fetch brand including existing categories
             let brand = await brandRepository.findOne({
                 where: { name: productData.brand },
+                relations: ["categories"], // Ensure we get associated categories
             });
+
             if (!brand) {
                 brand = brandRepository.create({
                     name: productData.brand,
-                    category: category,
+                    categories: [category],
                 });
-                await brandRepository.save(brand);
+            } else {
+                // Ensure the brand is associated with the category
+                if (!brand.categories.some((c) => c.id === category!.id)) {
+                    brand.categories.push(category);
+                }
             }
+            await brandRepository.save(brand); // Save brand with updated categories
 
+            // Create product entry
             const product = productRepository.create({
                 title: productData.title,
                 descriptionSmall: productData.descriptionSmall,
@@ -53,11 +63,12 @@ export const insertData = async () => {
                 brand: brand,
                 additionalInformation: productData.additionalInformation,
             });
+
             await productRepository.save(product);
         }
 
-        console.log("products added successfullly");
+        console.log("Products added successfully");
     } catch (error) {
-        console.log("Erorr inserting products:", error);
+        console.log("Error inserting products:", error);
     }
 };
