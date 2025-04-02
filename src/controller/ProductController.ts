@@ -5,7 +5,7 @@ import { catchAsyncErrorHandler } from "../utils/CatchAsyncErrorHandler";
 import { ErrorHandler } from "../middleware/errorHandler";
 import { Cart, CartItem } from "../models/Cart";
 import { User } from "../models/User";
-import { ILike } from "typeorm";
+import { Brackets, ILike } from "typeorm";
 
 const productRepository = AppDataSource.getRepository(Product);
 const categoryRepository = AppDataSource.getRepository(Category);
@@ -14,7 +14,7 @@ const brandRepository = AppDataSource.getRepository(Brand);
 export const getAllProducts = catchAsyncErrorHandler(
     async (req: Request, res: Response, next: NextFunction) => {
         const products = await productRepository.find({
-            relations: ["category", "brand"]
+            relations: ["category", "brand"],
         });
 
         res.status(200).json({ success: true, products: products });
@@ -262,17 +262,97 @@ export const getAllBrands = catchAsyncErrorHandler(
 //     }
 // );
 
-export const filteredProducts = catchAsyncErrorHandler(
-    async (req: Request, res: Response, nest: NextFunction) => {
-        const { category, brand, minprice, maxprice, sortby, search } =
-            req.query;
+// export const filteredProducts = catchAsyncErrorHandler(
+//     async (req: Request, res: Response, nest: NextFunction) => {
+//         const { category, brand, minprice, maxprice, sortby, search } =
+//             req.query;
 
-        console.log("category:", category);
-        console.log("brand:", brand);
-        console.log("minprice:", minprice);
-        console.log("maxprice:", maxprice);
-        console.log("sortby:", sortby);
-        console.log("search:", search);
+//         console.log("category:", category);
+//         console.log("brand:", brand);
+//         console.log("minprice:", minprice);
+//         console.log("maxprice:", maxprice);
+//         console.log("sortby:", sortby);
+//         console.log("search:", search);
+
+//         let query = productRepository
+//             .createQueryBuilder("product")
+//             .leftJoinAndSelect("product.category", "category")
+//             .leftJoinAndSelect("product.brand", "brand");
+
+//         if (search) {
+//             const keyword = `%${(search as string).toLowerCase()}%`;
+//             query = query.andWhere(
+//                 `product.title ILIKE :keyword OR
+//                 brand.name ILIKE :keyword OR
+//                 category.name ILIKE :keyword OR
+//                 product.descriptionSmall ILIKE :keyword`,
+//                 { keyword }
+//             );
+//         }
+
+//         if (category) {
+//             query = query.andWhere("LOWER(category.name) = LOWER(:category)", {
+//                 category,
+//             });
+//         }
+
+//         if (brand) {
+//             const brandArray = (brand as string)
+//                 .split(",")
+//                 .map((b) => b.trim().toLowerCase());
+//             query = query.andWhere("LOWER(brand.name) IN (:...brandArray)", {
+//                 brandArray,
+//             });
+//         }
+
+//         if (minprice) {
+//             query = query.andWhere("product.retailPrice >= :minprice", {
+//                 minprice: Number(minprice),
+//             });
+//         }
+//         if (maxprice) {
+//             query = query.andWhere("product.retailPrice <= :maxprice", {
+//                 maxprice: Number(maxprice),
+//             });
+//         }
+
+//         if (sortby) {
+//             if (sortby === "popularity_low_to_high") {
+//                 query = query.orderBy("product.rating", "ASC");
+//             } else if (sortby === "popularity_high_to_low") {
+//                 query = query.orderBy("product.rating", "DESC");
+//             } else if (sortby === "price_low_to_high") {
+//                 query = query.orderBy("product.retailPrice", "ASC");
+//             } else if (sortby === "price_high_to_low") {
+//                 query = query.orderBy("product.retailPrice", "DESC");
+//             }
+//         }
+
+//         const filteredProducts = await query.getMany();
+
+//         res.status(200).json({
+//             status: true,
+//             filteredProducts,
+//             length: filteredProducts.length,
+//         });
+//     }
+// );
+
+export const filteredProducts = catchAsyncErrorHandler(
+    async (req: Request, res: Response) => {
+        const {
+            category,
+            brand,
+            minprice,
+            maxprice,
+            sortby,
+            search,
+            page = 1,
+            limit = 9,
+        } = req.query;
+        const pageNumber = Number(page);
+        const pageSize = Number(limit);
+        const skip = (pageNumber - 1) * pageSize;
 
         let query = productRepository
             .createQueryBuilder("product")
@@ -280,67 +360,75 @@ export const filteredProducts = catchAsyncErrorHandler(
             .leftJoinAndSelect("product.brand", "brand");
 
         if (search) {
-            query.andWhere(
-                `product.title ILIKE :keyword OR 
-                 brand.name ILIKE :keyword OR 
-                 category.name ILIKE :keyword OR 
-                 product.descriptionSmall ILIKE :keyword`,
-                { keyword: `%${search}%` }
+            const keyword = `%${(search as string).toLowerCase()}%`;
+            query = query.andWhere(
+                new Brackets((qb) => {
+                    qb.where("product.title ILIKE :keyword", { keyword })
+                        .orWhere("brand.name ILIKE :keyword", { keyword })
+                        .orWhere("category.name ILIKE :keyword", { keyword })
+                        .orWhere("product.descriptionSmall ILIKE :keyword", {
+                            keyword,
+                        });
+                })
             );
         }
 
-
         if (category) {
-            query.andWhere("category.name ILIKE :category", {
-                category: `%${category}%`,
+            query = query.andWhere("LOWER(category.name) = LOWER(:category)", {
+                category,
             });
         }
 
         if (brand) {
             const brandArray = (brand as string)
                 .split(",")
-                .map((b) => b.trim());
-            query.andWhere("brand.name IN (:...brandArray)", { brandArray });
+                .map((b) => b.trim().toLowerCase());
+            query = query.andWhere("LOWER(brand.name) IN (:...brandArray)", {
+                brandArray,
+            });
         }
 
         if (minprice) {
-            query.andWhere("product.retailPrice >= :minprice", {
+            query = query.andWhere("product.retailPrice >= :minprice", {
                 minprice: Number(minprice),
             });
         }
 
         if (maxprice) {
-            query.andWhere("product.retailPrice <= :maxprice", {
+            query = query.andWhere("product.retailPrice <= :maxprice", {
                 maxprice: Number(maxprice),
             });
         }
 
         if (sortby) {
-            switch (sortby) {
-                case "popularity_low_to_high":
-                    query.orderBy("product.rating", "ASC");
-                    break;
-                case "popularity_high_to_low":
-                    query.orderBy("product.rating", "DESC");
-                    break;
-                case "price_low_to_high":
-                    query.orderBy("product.retailPrice", "ASC");
-                    break;
-                case "price_high_to_low":
-                    query.orderBy("product.retailPrice", "DESC");
-                    break;
-            }
+            if (sortby === "price_low_to_high")
+                query = query.orderBy("product.retailPrice", "ASC");
+            if (sortby === "price_high_to_low")
+                query = query.orderBy("product.retailPrice", "DESC");
+            if (sortby === "popularity_high_to_low")
+                query = query.orderBy("product.rating", "DESC");
+            if (sortby === "popularity_low_to_high")
+                query = query.orderBy("product.rating", "ASC");
         }
 
-        const filteredProducts = await query.getMany();
+        const totalCount = await query.getCount();
+        const totalPages = Math.ceil(totalCount / pageSize);
+
+        const filteredProducts = await query
+            .skip(skip)
+            .take(pageSize)
+            .getMany();
 
         res.status(200).json({
             status: true,
             filteredProducts,
-            length: filteredProducts.length,
+            totalPages,
+            currentPage: pageNumber,
+            totalCount,
         });
     }
 );
+
 export const searchedProducts = catchAsyncErrorHandler(
     async (req: Request, res: Response, next: NextFunction) => {
         const { search } = req.query;
