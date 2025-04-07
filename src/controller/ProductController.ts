@@ -43,6 +43,30 @@ export const getProduct = catchAsyncErrorHandler(
         res.status(200).json({ success: true, product: product });
     }
 );
+
+export const getProductById = catchAsyncErrorHandler(
+    async (req: Request, res: Response, next: NextFunction) => {
+        const { productID } = req.params;
+
+        if (!productID) {
+            next(new ErrorHandler("Product ID is required", 400));
+            return;
+        }
+
+        const product = (await productRepository.find()).findIndex(
+            (item) => item.id === productID
+        );
+
+        if (!product) {
+            next(new ErrorHandler("Product does not exist", 404));
+            return;
+        }
+
+        res.status(200).json({ success: true, product: product });
+    }
+);
+
+
 export const getAllCategories = catchAsyncErrorHandler(
     async (req: Request, res: Response, next: NextFunction) => {
         const categories = await categoryRepository.find({
