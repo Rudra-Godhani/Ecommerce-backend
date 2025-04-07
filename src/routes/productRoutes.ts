@@ -5,6 +5,7 @@ import {
     getAllCategories,
     getAllProducts,
     getProduct,
+    getProductById,
     searchedProducts,
 } from "../controller/ProductController";
 
@@ -14,6 +15,7 @@ router.get("/getallproducts", getAllProducts);
 router.get("/filteredproducts", filteredProducts);
 router.get("/searchedproducts", searchedProducts);
 router.get("/getproduct/:productid", getProduct);
+router.get("/getproductindex/:productID", getProductById);
 router.get("/getallcategories", getAllCategories);
 router.get("/getallbrands", getAllBrands);
 
