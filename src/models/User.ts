@@ -1,7 +1,10 @@
 import {
     IsEmail,
+    isNotEmpty,
     IsNotEmpty,
+    IsNumber,
     IsOptional,
+    IsString,
     Length,
     Matches,
     MaxLength,
@@ -13,7 +16,20 @@ import {
     Column,
     CreateDateColumn,
     UpdateDateColumn,
+    OneToOne,
+    ManyToOne,
+    OneToMany,
 } from "typeorm";
+import { Product } from "./Product";
+
+export enum OrderStatus {
+    PLACED = "Placed",
+    PROCESSING = "Processing",
+    SHIPPED = "Shipped",
+    DELIVERED = "Delivered",
+    CANCELLED = "Cancelled",
+    REFUNDED = "Refunded",
+}
 
 @Entity()
 export class User {
@@ -46,9 +62,9 @@ export class User {
     @IsOptional()
     phoneNumber!: number;
 
-    @Column({ nullable: true })
-    @IsOptional()
-    address!: string;
+    // @Column({ nullable: true })
+    // @IsOptional()
+    // address!: string;
 
     @Column({ type: "jsonb", default: { public_id: "", url: "" } })
     @IsOptional()
@@ -61,9 +77,125 @@ export class User {
     @IsOptional()
     token!: string;
 
+    @OneToMany(() => Address, (address) => address.user, { cascade: true ,eager: true})
+    addresses!: Address[];
+
+    @OneToMany(() => Order, (order) => order.user, { cascade: true })
+    orders!: Order[];
+
     @CreateDateColumn({ type: "timestamp" })
     createdAt!: Date;
 
     @UpdateDateColumn({ type: "timestamp" })
     updatedAt!: Date;
 }
+
+@Entity()
+export class Address {
+    @PrimaryGeneratedColumn("uuid")
+    id!: string;
+
+    @Column()
+    @IsString({ message: "Line1 must be a string" })
+    @IsNotEmpty({ message: "Line1 is required" })
+    line1!: string;
+
+    @Column({ nullable: true })
+    @IsString({ message: "Line2 must be a string" })
+    @IsNotEmpty({ message: "Line2 is required" })
+    line2!: string;
+
+    @Column({ nullable: true })
+    @IsNotEmpty({ message: "City is required" })
+    city!: string;
+
+    @Column()
+    @IsNotEmpty({ message: "State is required" })
+    state!: string;
+
+    @Column()
+    @Length(6, 6, { message: "Pincode must be exactly 6 digits long." })
+    @IsString({ message: "pincode must be a string" })
+    @IsNotEmpty({ message: "Pincode is required" })
+    pincode!: string;
+
+    @Column({ default: false })
+    isDefault!: boolean;
+
+    @ManyToOne(() => User, (user) => user.addresses, {
+        onDelete: "CASCADE",
+    })
+    user!: User;
+
+    @CreateDateColumn({ type: "timestamp" })
+    createdAt!: Date;
+
+    @UpdateDateColumn({ type: "timestamp" })
+    updatedAt!: Date;
+}
+
+@Entity()
+export class Order {
+    @PrimaryGeneratedColumn("uuid")
+    id!: string;
+
+    @Column()
+    total!: number;
+
+    @Column({ default: 0 })
+    discount!: number;
+
+    @Column({ default: 0 })
+    netTotal!: number;
+
+    @Column()
+    deliveryCharge!: number;
+
+    @Column({ type: "enum", enum: OrderStatus, default: OrderStatus.PLACED })
+    status!: OrderStatus;
+
+    @ManyToOne(() => User, (user) => user.orders, { onDelete: "CASCADE" })
+    user!: User;
+
+    @OneToMany(() => OrderItem, (orderItem) => orderItem.order, {
+        cascade: true,
+    })
+    orderItems!: OrderItem[];
+
+    @CreateDateColumn({ type: "timestamp" })
+    createdAt!: Date;
+
+    @UpdateDateColumn({ type: "timestamp" })
+    updatedAt!: Date;
+}
+
+@Entity()
+export class OrderItem {
+    @PrimaryGeneratedColumn("uuid")
+    id!: string;
+
+    @Column()
+    quantity!: number;
+
+    @Column({ type: "float" })
+    price!: number;
+
+    @Column({ type: "float" })
+    totalPrice!: number;
+
+    @ManyToOne(() => Order, (order) => order.orderItems, {
+        onDelete: "CASCADE",
+    })
+    order!: Order;
+
+    @ManyToOne(() => Product, { eager: true })
+    product!: Product;
+
+    @CreateDateColumn({ type: "timestamp" })
+    createdAt!: Date;
+
+    @UpdateDateColumn({ type: "timestamp" })
+    updatedAt!: Date;
+}
+
+
