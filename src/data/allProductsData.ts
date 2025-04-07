@@ -1712,7 +1712,7 @@ export const productsData: Product[] = [
         noOfReviews: 72,
         rating: 4.7,
         brand: "Burberry",
-        category: "Clothing",
+        category: "Men’s Clothing",
         additionalInformation:
             "Crafted from premium wool, this Burberry coat features a double-breasted design and notched lapels for a refined look. Ideal for both formal and casual settings, it offers exceptional warmth and durability, embodying classic British style with modern appeal.",
     },
@@ -1776,7 +1776,7 @@ export const productsData: Product[] = [
         noOfReviews: 55,
         rating: 4.9,
         brand: "Loro Piana",
-        category: "Clothing",
+        category: "Women’s Clothing",
         additionalInformation:
             "Woven from the finest cashmere, this Loro Piana sweater offers exceptional softness and warmth. Its relaxed fit and ribbed detailing make it versatile for layering or standalone wear, combining Italian craftsmanship with timeless luxury.",
     },
