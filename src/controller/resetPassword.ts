@@ -79,7 +79,7 @@ export const forgotPassword = catchAsyncErrorHandler(
             text: `Click the link below to reset your password:\n\n ${process.env.FRONTEND_URL}/resetPassword/${token} \n\nThis link will expire in 5 minutes.`,
         };
 
-        transport.sendMail(mailOptions, function (error, info) {
+        transport.sendMail(mailOptions, function (error) {
             if (error) {
                 next(
                     new ErrorHandler(

@@ -1,13 +1,5 @@
 import express from "express";
-import {
-    filteredProducts,
-    getAllBrands,
-    getAllCategories,
-    getAllProducts,
-    getProduct,
-    getProductById,
-    searchedProducts,
-} from "../controller/ProductController";
+import { filteredProducts, getAllBrands, getAllCategories, getAllProducts, getProduct, getProductById, searchedProducts } from "../controller/ProductController";
 
 const router = express.Router();
 

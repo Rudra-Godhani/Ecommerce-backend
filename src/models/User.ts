@@ -25,7 +25,7 @@ import { Product } from "./Product";
 export enum OrderStatus {
     PLACED = "Placed",
     PROCESSING = "Processing",
-    SHIPPED = "Shipped",
+    SHIPPED = "Shipping",
     DELIVERED = "Delivered",
     CANCELLED = "Cancelled",
     REFUNDED = "Refunded",
@@ -77,7 +77,10 @@ export class User {
     @IsOptional()
     token!: string;
 
-    @OneToMany(() => Address, (address) => address.user, { cascade: true ,eager: true})
+    @OneToMany(() => Address, (address) => address.user, {
+        cascade: true,
+        eager: true,
+    })
     addresses!: Address[];
 
     @OneToMany(() => Order, (order) => order.user, { cascade: true })
@@ -139,20 +142,23 @@ export class Order {
     @PrimaryGeneratedColumn("uuid")
     id!: string;
 
-    @Column()
+    @Column({ type: "float" })
     total!: number;
 
-    @Column({ default: 0 })
+    @Column({ type: "float", default: 0 })
     discount!: number;
 
-    @Column({ default: 0 })
+    @Column({ type: "float", default: 0 })
     netTotal!: number;
 
-    @Column()
+    @Column({ type: "float" })
     deliveryCharge!: number;
 
     @Column({ type: "enum", enum: OrderStatus, default: OrderStatus.PLACED })
     status!: OrderStatus;
+
+    @Column({ nullable: true })
+    stripeSessionId!: string;
 
     @ManyToOne(() => User, (user) => user.orders, { onDelete: "CASCADE" })
     user!: User;
@@ -161,6 +167,11 @@ export class Order {
         cascade: true,
     })
     orderItems!: OrderItem[];
+
+    @ManyToOne(() => Address, {
+        eager: true,
+    })
+    address!: Address;
 
     @CreateDateColumn({ type: "timestamp" })
     createdAt!: Date;
@@ -183,6 +194,9 @@ export class OrderItem {
     @Column({ type: "float" })
     totalPrice!: number;
 
+    @Column()
+    color!: string;
+
     @ManyToOne(() => Order, (order) => order.orderItems, {
         onDelete: "CASCADE",
     })
@@ -197,5 +211,3 @@ export class OrderItem {
     @UpdateDateColumn({ type: "timestamp" })
     updatedAt!: Date;
 }
-
-
