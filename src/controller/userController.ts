@@ -105,12 +105,7 @@ export const login = catchAsyncErrorHandler(
 
             const secret = process.env.JWT_SECRET;
             if (!secret) {
-                next(
-                    new ErrorHandler(
-                        "JWT_SECRET is not defined in environment variables",
-                        400
-                    )
-                );
+                next(new ErrorHandler("JWT_SECRET is not found.", 400));
                 return;
             }
 
