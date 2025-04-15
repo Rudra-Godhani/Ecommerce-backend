@@ -8,6 +8,8 @@ export const AppDataSource = new DataSource({
     logging: false,
     entities: ["dist/models/*.js"],
     migrations: ["dist/migrations/*.js"],
+    // entities: ["src/models/*.ts"],
+    // migrations: ["src/migrations/*.ts"],
     subscribers: [],
     ssl: {
         rejectUnauthorized: false,
