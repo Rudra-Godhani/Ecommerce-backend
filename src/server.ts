@@ -16,6 +16,7 @@ import fileUpload from "express-fileupload";
 import { errorMiddleware } from "./middleware/errorHandler";
 import { handleStripeWebhook } from "./controller/paymentController";
 import { orderStatusCron } from "./utils/updateOrderStatus";
+import { insertData } from "./utils/insertProducts";
 
 const app = express();
 const PORT = process.env.PORT || 6000;
@@ -60,7 +61,7 @@ const startServer = async () => {
     cloudinaryConnect();
 
     // insert data to database
-    // await insertData();
+    await insertData();
 };
 
 startServer();
