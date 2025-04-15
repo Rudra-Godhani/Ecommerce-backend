@@ -70,9 +70,8 @@ export const createCheckoutSession = catchAsyncErrorHandler(
             payment_method_types: ["card"],
             line_items: lineItems,
             mode: "payment",
-            success_url: `http://localhost:5173/payment/success?session_id={CHECKOUT_SESSION_ID}`,
-            cancel_url:
-                "http://localhost:5173/payment/failed?session_id={CHECKOUT_SESSION_ID}",
+            success_url: `${process.env.FRONTEND_URL}/payment/success?session_id={CHECKOUT_SESSION_ID}`,
+            cancel_url: `${process.env.FRONTEND_URL}/payment/failed?session_id={CHECKOUT_SESSION_ID}`,
             metadata: {
                 userId: req.user?.id as string,
                 addressId: address.id,
@@ -152,7 +151,8 @@ export const handleStripeWebhook = catchAsyncErrorHandler(
                         const orderItem = new OrderItem();
                         orderItem.quantity = item.quantity;
                         orderItem.price = product.retailPrice;
-                        orderItem.totalPrice = product.retailPrice * item.quantity;
+                        orderItem.totalPrice =
+                            product.retailPrice * item.quantity;
                         orderItem.product = product;
                         orderItem.color = item.color;
                         return orderItem;
