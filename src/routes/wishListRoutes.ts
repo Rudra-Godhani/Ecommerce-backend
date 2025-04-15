@@ -1,6 +1,6 @@
 import express from "express";
 import { isAuthenticated } from "../middleware/auth";
-import { addProductToWishList, getWishList, removeProductFromWishList } from "../controller/tempWishlist";
+import { addProductToWishList, getWishList, removeProductFromWishList } from "../controller/wishListController";
 
 const router = express.Router();
 
