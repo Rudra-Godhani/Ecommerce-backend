@@ -117,15 +117,13 @@ export const login = catchAsyncErrorHandler(
             await userRepository.save(user);
             const { password: _, ...userWithoutPassword } = user;
 
-            const options = {
+            res.cookie("token", token, {
                 httpOnly: true,
                 secure: true,
-                sameSite: "strict" as const,
+                sameSite: "none",
                 path: "/",
                 maxAge: 7 * 24 * 60 * 60 * 1000,
-            };
-
-            res.cookie("token", token, options).status(200).json({
+            }).status(200).json({
                 success: true,
                 token,
                 user: userWithoutPassword,
