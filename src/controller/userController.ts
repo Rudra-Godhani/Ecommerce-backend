@@ -121,6 +121,7 @@ export const login = catchAsyncErrorHandler(
                 expires: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
                 httpOnly: true,
                 secure: true,
+                sameSite: "strict" as const
             };
 
             res.cookie("token", token, options).status(200).json({
