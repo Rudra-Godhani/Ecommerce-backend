@@ -7,8 +7,8 @@ export const AppDataSource = new DataSource({
     url: process.env.DATABASE_URL,
     synchronize: true,
     logging: false,
-    entities: ["src/models/*.ts"],
-    migrations: ["src/migrations/*.ts"],
+    entities: ["dist/models/*.js"],
+    migrations: ["dist/migrations/*.js"],
     subscribers: [],
     ssl: {
         rejectUnauthorized: false,
