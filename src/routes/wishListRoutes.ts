@@ -1,7 +1,6 @@
 import express from "express";
-import { removeProductFromCart } from "../controller/cartController";
 import { isAuthenticated } from "../middleware/auth";
-import { addProductToWishList, getWishList, removeProductFromWishList } from "../controller/WishListController";
+import { addProductToWishList, getWishList, removeProductFromWishList } from "../controller/wishListController";
 
 const router = express.Router();
 

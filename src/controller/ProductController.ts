@@ -1,11 +1,9 @@
 import { AppDataSource } from "../config/databaseConnection";
 import { Brand, Category, Product } from "../models/Product";
 import { NextFunction, Request, Response } from "express";
-import { catchAsyncErrorHandler } from "../utils/CatchAsyncErrorHandler";
+import { catchAsyncErrorHandler } from "../utils/catchAsyncErrorHandler";
 import { ErrorHandler } from "../middleware/errorHandler";
-import { Cart, CartItem } from "../models/Cart";
-import { User } from "../models/User";
-import { Brackets, ILike } from "typeorm";
+import { Brackets } from "typeorm";
 
 const productRepository = AppDataSource.getRepository(Product);
 const categoryRepository = AppDataSource.getRepository(Category);
@@ -21,7 +19,7 @@ export const getAllProducts = catchAsyncErrorHandler(
     }
 );
 
-export const getProduct = catchAsyncErrorHandler(
+export const getProductById = catchAsyncErrorHandler(
     async (req: Request, res: Response, next: NextFunction) => {
         const { productid } = req.params;
 
@@ -43,29 +41,6 @@ export const getProduct = catchAsyncErrorHandler(
         res.status(200).json({ success: true, product: product });
     }
 );
-
-export const getProductById = catchAsyncErrorHandler(
-    async (req: Request, res: Response, next: NextFunction) => {
-        const { productID } = req.params;
-
-        if (!productID) {
-            next(new ErrorHandler("Product ID is required", 400));
-            return;
-        }
-
-        const product = (await productRepository.find()).findIndex(
-            (item) => item.id === productID
-        );
-
-        if (!product) {
-            next(new ErrorHandler("Product does not exist", 404));
-            return;
-        }
-
-        res.status(200).json({ success: true, product: product });
-    }
-);
-
 
 export const getAllCategories = catchAsyncErrorHandler(
     async (req: Request, res: Response, next: NextFunction) => {
@@ -174,37 +149,6 @@ export const filteredProducts = catchAsyncErrorHandler(
             totalPages,
             currentPage: pageNumber,
             totalCount,
-        });
-    }
-);
-
-export const searchedProducts = catchAsyncErrorHandler(
-    async (req: Request, res: Response, next: NextFunction) => {
-        const { search } = req.query;
-
-        if (!search) {
-            next(
-                new ErrorHandler("Please provide a valid search keyword", 400)
-            );
-            return;
-        }
-
-        const keyword = `%${(search as string).toLowerCase()}%`;
-
-        const searchedProducts = await productRepository.find({
-            where: [
-                { title: ILike(`%${keyword}%`) },
-                { brand: { name: ILike(`%${keyword}%`) } },
-                { category: { name: ILike(`%${keyword}%`) } },
-                { descriptionSmall: ILike(`%${keyword}%`) },
-            ],
-            relations: ["category", "brand"],
-        });
-
-        res.status(200).json({
-            status: true,
-            searchedProducts,
-            length: searchedProducts.length,
         });
     }
 );

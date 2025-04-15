@@ -3,7 +3,7 @@ import { ErrorHandler } from "../middleware/errorHandler";
 import { Product } from "../models/Product";
 import { User } from "../models/User";
 import { WishList, WishListItem } from "../models/WishList";
-import { catchAsyncErrorHandler } from "../utils/CatchAsyncErrorHandler";
+import { catchAsyncErrorHandler } from "../utils/catchAsyncErrorHandler";
 import { Request, Response, NextFunction } from "express";
 
 const productRepository = AppDataSource.getRepository(Product);
@@ -78,7 +78,7 @@ export const addProductToWishList = catchAsyncErrorHandler(
         } else {
             res.status(201).json({
                 success: true,
-                message: "product added to wishlist",
+                message: "Product added to wishlist",
                 wishListData,
             });
         }
@@ -133,7 +133,7 @@ export const removeProductFromWishList = catchAsyncErrorHandler(
 
         res.status(200).json({
             success: true,
-            message: "product removed from wishlist",
+            message: "Product removed from wishlist",
             wishListData,
         });
     }
@@ -151,7 +151,7 @@ export const getWishList = catchAsyncErrorHandler(
         if (!wishList) {
             res.status(200).json({
                 success: true,
-                message: "wishlist is Empty",
+                message: "Wishlist is Empty",
                 wishList: [],
             });
             return;
@@ -164,7 +164,7 @@ export const getWishList = catchAsyncErrorHandler(
 
         res.status(200).json({
             success: true,
-            message: "wishlist retrieved successfully",
+            message: "Wishlist retrieved successfully",
             wishListData,
         });
     }

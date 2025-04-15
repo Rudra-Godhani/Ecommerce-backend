@@ -1,13 +1,10 @@
 import {
     IsEmail,
-    isNotEmpty,
     IsNotEmpty,
-    IsNumber,
     IsOptional,
     IsString,
     Length,
     Matches,
-    MaxLength,
     MinLength,
 } from "class-validator";
 import {
@@ -16,7 +13,6 @@ import {
     Column,
     CreateDateColumn,
     UpdateDateColumn,
-    OneToOne,
     ManyToOne,
     OneToMany,
 } from "typeorm";
@@ -61,10 +57,6 @@ export class User {
     @Length(10, 10, { message: "Phone number must be exactly 10 digits long." })
     @IsOptional()
     phoneNumber!: number;
-
-    // @Column({ nullable: true })
-    // @IsOptional()
-    // address!: string;
 
     @Column({ type: "jsonb", default: { public_id: "", url: "" } })
     @IsOptional()

@@ -1,17 +1,13 @@
 import express from "express";
 import {
     createCheckoutSession,
-    handleStripeWebhook,
+    validateSession,
 } from "../controller/paymentController";
 import { isAuthenticated } from "../middleware/auth";
 
 const router = express.Router();
 
 router.post("/create-checkout-session", isAuthenticated, createCheckoutSession);
-// router.post(
-//     "/webhook",
-//     express.raw({ type: "application/json" }),
-//     handleStripeWebhook
-// );
+router.get("/validate-session", validateSession);
 
 export default router;

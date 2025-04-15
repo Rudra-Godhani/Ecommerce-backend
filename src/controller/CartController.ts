@@ -1,6 +1,6 @@
 import { NextFunction, Request, Response } from "express";
 import { User } from "../models/User";
-import { catchAsyncErrorHandler } from "../utils/CatchAsyncErrorHandler";
+import { catchAsyncErrorHandler } from "../utils/catchAsyncErrorHandler";
 import { ErrorHandler } from "../middleware/errorHandler";
 import { AppDataSource } from "../config/databaseConnection";
 import { Cart, CartItem } from "../models/Cart";

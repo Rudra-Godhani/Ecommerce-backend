@@ -1,258 +1,17 @@
-// import { Request, Response, NextFunction } from "express";
-// import { catchAsyncErrorHandler } from "../utils/CatchAsyncErrorHandler";
-// import { Stripe } from "stripe";
-// import { Address, Order, OrderItem, OrderStatus, User } from "../models/User";
-// import { AppDataSource } from "../config/databaseConnection";
-// import { ErrorHandler } from "../middleware/errorHandler";
-
-// const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string);
-
-// // export const createCheckoutSession = catchAsyncErrorHandler(
-// //     async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-// //         const productData = req.body;
-
-// //         console.log("productData: ", productData);
-
-// //         const lineItems = productData.map((data: any) => ({
-// //             price_data: {
-// //                 currency: "usd",
-// //                 product_data: {
-// //                     name: data.product.title,
-// //                     images: data.product.images,
-// //                 },
-// //                 unit_amount: data.product.price * 100,
-// //             },
-// //             quantity: data.quantity,
-// //         }));
-
-// //         const session = await stripe.checkout.sessions.create({
-// //             payment_method_types: ["card"],
-// //             line_items: lineItems,
-// //             mode: "payment",
-// //             success_url: "http://localhost:5173/payment/success",
-// //             cancel_url: "http://localhost:5173/payment/cancel",
-// //         });
-
-// //         res.json({
-// //             success: true,
-// //             id: session.id,
-// //         });
-// //     }
-// // );
-
-// const orderRepository = AppDataSource.getRepository(Order);
-// const addressRepository = AppDataSource.getRepository(Address);
-
-// interface AuthRequest extends Request {
-//     user?: User;
-// }
-
-// export const createCheckoutSession = catchAsyncErrorHandler(
-//     async (
-//         req: AuthRequest,
-//         res: Response,
-//         next: NextFunction
-//     ): Promise<void> => {
-//         const data = req.body;
-
-//         const address = await addressRepository.findOne({
-//             where: { id: data.shippingAddress.id, user: { id: req.user?.id } },
-//         });
-
-//         if (!address) {
-//             next(new ErrorHandler("Invalid shipping address", 404));
-//             return;
-//         }
-
-//         const total = data.cartItems.reduce(
-//             (sum: number, item: any) =>
-//                 sum + item.product.price * item.quantity,
-//             0
-//         );
-
-//         const deliveryCharge = 20.0;
-//         const netTotal = total + deliveryCharge;
-
-//         const orderItems = data.cartItems.map((item: any) => {
-//             const orderItem = new OrderItem();
-//             orderItem.quantity = item.quantity;
-//             orderItem.price = item.product.price;
-//             orderItem.totalPrice = item.product.price * item.quantity;
-//             orderItem.product = item.product;
-//             return orderItem;
-//         });
-
-//         const order = new Order();
-//         order.total = total;
-//         order.discount = 0;
-//         order.netTotal = netTotal;
-//         order.deliveryCharge = deliveryCharge;
-//         order.status = OrderStatus.PLACED;
-//         order.user = { id: req.user?.id } as User;
-//         order.orderItems = orderItems;
-//         order.address = address;
-
-//         await orderRepository.save(order);
-//         console.log("order.id:", order.id);
-
-//         const lineItems = data.cartItems.map((data: any) => ({
-//             price_data: {
-//                 currency: "usd",
-//                 product_data: {
-//                     name: data.product.title,
-//                     images: data.product.images,
-//                 },
-//                 unit_amount: Math.round(data.product.price * 100),
-//             },
-//             quantity: data.quantity,
-//         }));
-
-//         lineItems.push({
-//             price_data: {
-//                 currency: "usd",
-//                 product_data: {
-//                     name: "Delivery Charge",
-//                 },
-//                 unit_amount: Math.round(deliveryCharge * 100),
-//             },
-//         });
-
-//         const session = await stripe.checkout.sessions.create({
-//             payment_method_types: ["card"],
-//             line_items: lineItems,
-//             mode: "payment",
-//             success_url: `http://localhost:5173/payment/success?orderId=${order.id}`,
-//             cancel_url: "http://localhost:5173/payment/cancel",
-//             metadata: {
-//                 orderId: order.id,
-//                 userId: req.user?.id as string,
-//             },
-//         });
-
-//         order.stripeSessionId = session.id;
-//         await orderRepository.save(order);
-
-//         res.json({
-//             success: true,
-//             id: session.id,
-//         });
-//     }
-// );
-
-// export const handleStripeWebhook = catchAsyncErrorHandler(
-//     async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-//         const sig = req.headers["stripe-signature"] as string;
-//         const endpointSecret = process.env.STRIPE_WEBHOOK_KEY as string;
-
-//         let event: Stripe.Event;
-
-//         try {
-//             event = stripe.webhooks.constructEvent(
-//                 req.body,
-//                 sig,
-//                 endpointSecret
-//             );
-//         } catch (err: any) {
-//             console.error(`Webhook Error: ${err.message}`);
-//             next(new ErrorHandler(`Webhook Error: ${err.message}`, 400));
-//             return;
-//         }
-
-//         const orderRepository = AppDataSource.getRepository(Order);
-
-//         switch (event.type) {
-//             case "checkout.session.completed":
-//                 console.log("✅ Handling checkout.session.completed");
-//                 const session = event.data.object as Stripe.Checkout.Session;
-//                 const orderId = session.metadata?.orderId;
-//                 console.log("Order ID from metadata:", orderId);
-
-//                 if (orderId) {
-//                     const order = await orderRepository.findOne({
-//                         where: { id: orderId },
-//                         relations: ["user", "orderItems", "address"],
-//                     });
-
-//                     if (order) {
-//                         order.status = OrderStatus.PROCESSING; // Or whatever status you prefer
-//                         await orderRepository.save(order);
-//                         console.log(`Order ${order.id} payment completed`);
-//                     }
-//                 }
-//                 break;
-
-//             case "checkout.session.expired":
-//             case "checkout.session.async_payment_failed":
-//                 const failedSession = event.data
-//                     .object as Stripe.Checkout.Session;
-//                 const failedOrderId = failedSession.metadata?.orderId;
-
-//                 if (failedOrderId) {
-//                     const order = await orderRepository.findOne({
-//                         where: { id: failedOrderId },
-//                     });
-
-//                     if (order) {
-//                         order.status = OrderStatus.CANCELLED;
-//                         await orderRepository.save(order);
-//                         console.log(`Order ${order.id} payment failed`);
-//                     }
-//                 }
-//                 break;
-
-//             default:
-//                 console.log(`Unhandled event type ${event.type}`);
-//         }
-
-//         res.status(200).json({ received: true });
-//     }
-// );
-
 import { Request, Response, NextFunction } from "express";
-import { catchAsyncErrorHandler } from "../utils/CatchAsyncErrorHandler";
+import { catchAsyncErrorHandler } from "../utils/catchAsyncErrorHandler";
 import { Stripe } from "stripe";
 import { Address, Order, OrderItem, OrderStatus, User } from "../models/User";
 import { AppDataSource } from "../config/databaseConnection";
 import { ErrorHandler } from "../middleware/errorHandler";
 import { Product } from "../models/Product";
+import { ConsumedSession } from "../models/ConsumedSession";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string);
 
-// export const createCheckoutSession = catchAsyncErrorHandler(
-//     async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-//         const productData = req.body;
-
-//         console.log("productData: ", productData);
-
-//         const lineItems = productData.map((data: any) => ({
-//             price_data: {
-//                 currency: "usd",
-//                 product_data: {
-//                     name: data.product.title,
-//                     images: data.product.images,
-//                 },
-//                 unit_amount: data.product.price * 100,
-//             },
-//             quantity: data.quantity,
-//         }));
-
-//         const session = await stripe.checkout.sessions.create({
-//             payment_method_types: ["card"],
-//             line_items: lineItems,
-//             mode: "payment",
-//             success_url: "http://localhost:5173/payment/success",
-//             cancel_url: "http://localhost:5173/payment/cancel",
-//         });
-
-//         res.json({
-//             success: true,
-//             id: session.id,
-//         });
-//     }
-// );
-
 const orderRepository = AppDataSource.getRepository(Order);
 const addressRepository = AppDataSource.getRepository(Address);
+const consumedSessionRepository = AppDataSource.getRepository(ConsumedSession);
 
 interface AuthRequest extends Request {
     user?: User;
@@ -277,28 +36,28 @@ export const createCheckoutSession = catchAsyncErrorHandler(
 
         const total = data.cartItems.reduce(
             (sum: number, item: any) =>
-                sum + item.product.price * item.quantity,
+                sum + item.product.retailPrice * item.quantity,
             0
         );
 
-        const deliveryCharge = 20.0;
+        const deliveryCharge = 100.0;
         const netTotal = total + deliveryCharge;
 
         const lineItems = data.cartItems.map((data: any) => ({
             price_data: {
-                currency: "usd",
+                currency: "inr",
                 product_data: {
                     name: data.product.title,
                     images: data.product.images,
                 },
-                unit_amount: Math.round(data.product.price * 100),
+                unit_amount: Math.round(data.product.retailPrice * 100),
             },
             quantity: data.quantity,
         }));
 
         lineItems.push({
             price_data: {
-                currency: "usd",
+                currency: "inr",
                 product_data: {
                     name: "Delivery Charge",
                 },
@@ -311,8 +70,9 @@ export const createCheckoutSession = catchAsyncErrorHandler(
             payment_method_types: ["card"],
             line_items: lineItems,
             mode: "payment",
-            success_url: `http://localhost:5173/payment/success`,
-            cancel_url: "http://localhost:5173/payment/cancel",
+            success_url: `http://localhost:5173/payment/success?session_id={CHECKOUT_SESSION_ID}`,
+            cancel_url:
+                "http://localhost:5173/payment/failed?session_id={CHECKOUT_SESSION_ID}",
             metadata: {
                 userId: req.user?.id as string,
                 addressId: address.id,
@@ -350,8 +110,8 @@ export const handleStripeWebhook = catchAsyncErrorHandler(
                 endpointSecret
             );
         } catch (err: any) {
-            console.error(`Webhook Error: ${err.message}`);
-            return next(new ErrorHandler(`Webhook Error: ${err.message}`, 400));
+            next(new ErrorHandler(`Webhook Error: ${err.message}`, 400));
+            return;
         }
 
         switch (event.type) {
@@ -373,12 +133,10 @@ export const handleStripeWebhook = catchAsyncErrorHandler(
                 });
 
                 if (!address) {
-                    console.error("Address not found");
                     next(new ErrorHandler("Address not found", 404));
                     return;
                 }
 
-                // Fetch product data from DB
                 const productRepository = AppDataSource.getRepository(Product);
                 const orderItems = await Promise.all(
                     cartItems.map(async (item: any) => {
@@ -387,15 +145,16 @@ export const handleStripeWebhook = catchAsyncErrorHandler(
                         });
 
                         if (!product) {
-                            throw new ErrorHandler("Product not found", 404);
+                            next(new ErrorHandler("Product not found", 404));
+                            return;
                         }
 
                         const orderItem = new OrderItem();
                         orderItem.quantity = item.quantity;
-                        orderItem.price = product.price;
-                        orderItem.totalPrice = product.price * item.quantity;
+                        orderItem.price = product.retailPrice;
+                        orderItem.totalPrice = product.retailPrice * item.quantity;
                         orderItem.product = product;
-                        orderItem.color = item.color; // If your OrderItem entity has a color field
+                        orderItem.color = item.color;
                         return orderItem;
                     })
                 );
@@ -451,5 +210,58 @@ export const handleStripeWebhook = catchAsyncErrorHandler(
         }
 
         res.status(200).json({ received: true });
+    }
+);
+
+export const validateSession = catchAsyncErrorHandler(
+    async (
+        req: AuthRequest,
+        res: Response,
+        next: NextFunction
+    ): Promise<void> => {
+        const { session_id } = req.query;
+
+        if (!session_id || typeof session_id !== "string") {
+            next(new ErrorHandler("Invalid session ID", 400));
+            return;
+        }
+
+        const existingSession = await consumedSessionRepository.findOne({
+            where: { sessionId: session_id },
+        });
+
+        if (existingSession) {
+            next(
+                new ErrorHandler(
+                    "This payment session has already been used",
+                    403
+                )
+            );
+            return;
+        }
+
+        try {
+            const session = await stripe.checkout.sessions.retrieve(session_id);
+
+            if (!session) {
+                next(new ErrorHandler("Session not found", 404));
+                return;
+            }
+
+            const consumedSession = new ConsumedSession();
+            consumedSession.sessionId = session_id;
+            consumedSession.consumedAt = new Date();
+            await consumedSessionRepository.save(consumedSession);
+
+            res.json({
+                success: true,
+                status: session.payment_status,
+                sessionId: session.id,
+                message: "Session validated successfully",
+            });
+        } catch (error: any) {
+            next(new ErrorHandler("Failed to validate session", 500));
+            return;
+        }
     }
 );

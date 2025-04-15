@@ -4,10 +4,10 @@ import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import { v2 as cloudinary } from "cloudinary";
 import { UploadedFile } from "express-fileupload";
-import { Address, User } from "../models/User";
+import { User } from "../models/User";
 import { ErrorHandler } from "../middleware/errorHandler";
 import { validate } from "class-validator";
-import { catchAsyncErrorHandler } from "../utils/CatchAsyncErrorHandler";
+import { catchAsyncErrorHandler } from "../utils/catchAsyncErrorHandler";
 
 const userRepository = AppDataSource.getRepository(User);
 
@@ -34,7 +34,6 @@ export const register = catchAsyncErrorHandler(
             return;
         }
 
-        // Check if username exists
         const usernameExists = await userRepository.findOne({
             where: { name },
         });
@@ -43,14 +42,12 @@ export const register = catchAsyncErrorHandler(
             return;
         }
 
-        // Check if email exists
         const emailExists = await userRepository.findOne({ where: { email } });
         if (emailExists) {
             next(new ErrorHandler("Email is already used", 400));
             return;
         }
 
-        // Hash password
         const hashedPassword = await bcrypt.hash(password, 10);
         newUser.password = hashedPassword;
 
@@ -63,17 +60,9 @@ export const register = catchAsyncErrorHandler(
             message: "User Registered Successfully",
             user: userWithoutPassword,
         });
-        // } catch (error) {
-        // console.error("Error registering user:", error);
-        //     res.status(500).json({
-        //         success: false,
-        //         message: "User cannot be registered. Please try again",
-        //     });
-        // }
     }
 );
 
-// login user
 export const login = catchAsyncErrorHandler(
     async (req: Request, res: Response, next: NextFunction): Promise<void> => {
         const { email, password } = req.body;
@@ -95,7 +84,6 @@ export const login = catchAsyncErrorHandler(
             return;
         }
 
-        // Check if user exists
         const user = await userRepository.findOne({
             where: { email },
         });
@@ -150,15 +138,9 @@ export const login = catchAsyncErrorHandler(
             next(new ErrorHandler("Password is incorrect", 400));
             return;
         }
-        // console.error("Error LoggedIn user:", error);
-        //         res.status(500).json({
-        //             success: false,
-        //             message: "Login Failure, please try again",
-        //         });
     }
 );
 
-// logout
 export const logout = catchAsyncErrorHandler(
     async (req: Request, res: Response, next: NextFunction): Promise<void> => {
         res.clearCookie("token");
@@ -169,7 +151,6 @@ export const logout = catchAsyncErrorHandler(
     }
 );
 
-// get all users
 export const getAllUsers = catchAsyncErrorHandler(
     async (req: Request, res: Response, next: NextFunction): Promise<void> => {
         const users = await userRepository.find();
@@ -184,7 +165,6 @@ interface AuthenticatedRequest extends Request {
     user?: User;
 }
 
-// get user
 export const getUser = catchAsyncErrorHandler(
     async (
         req: AuthenticatedRequest,
@@ -198,8 +178,6 @@ export const getUser = catchAsyncErrorHandler(
         });
     }
 );
-
-// update profile
 
 interface AuthAndFileRequest extends Request {
     user?: User;
@@ -286,17 +264,9 @@ export const updateProfile = catchAsyncErrorHandler(
             user: updatedUser,
             message: "Profile updated successfully",
         });
-        // catch (error) {
-        //     console.error("Error While Updating Profile:", error);
-        //     res.status(500).json({
-        //         success: false,
-        //         message: "Failed Upadting Profile, please try again",
-        //     });
-        // }
     }
 );
 
-// update Password
 export const updatePassword = catchAsyncErrorHandler(
     async (
         req: AuthenticatedRequest,
@@ -306,7 +276,8 @@ export const updatePassword = catchAsyncErrorHandler(
         const { currentPassword, newPassword, confirmPassword } = req.body;
 
         if (!currentPassword) {
-            return next(new ErrorHandler("Current password is required.", 400));
+            next(new ErrorHandler("Current password is required.", 400));
+            return;
         }
 
         const userToValidate = userRepository.create({
@@ -327,12 +298,13 @@ export const updatePassword = catchAsyncErrorHandler(
         }
 
         if (newPassword !== confirmPassword) {
-            return next(
+            next(
                 new ErrorHandler(
                     "NewPassword and ConfirmNewPassword don't match.",
                     400
                 )
             );
+            return;
         }
 
         const user = await userRepository.findOne({
@@ -361,12 +333,5 @@ export const updatePassword = catchAsyncErrorHandler(
             success: true,
             message: "Password updated successfully",
         });
-        // catch (error) {
-        //     console.error("Error While Updating Password:", error);
-        //     res.status(500).json({
-        //         success: false,
-        //         message: "Failed Upadting Password, please try again",
-        //     });
-        // }
     }
 );

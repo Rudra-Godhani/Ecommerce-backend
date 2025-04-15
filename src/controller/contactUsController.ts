@@ -1,5 +1,5 @@
 import { NextFunction, Request, Response } from "express";
-import { catchAsyncErrorHandler } from "../utils/CatchAsyncErrorHandler";
+import { catchAsyncErrorHandler } from "../utils/catchAsyncErrorHandler";
 import { ErrorHandler } from "../middleware/errorHandler";
 const nodemailer = require("nodemailer");
 
@@ -14,15 +14,17 @@ export const sendContactMessage = catchAsyncErrorHandler(
 
         const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
         if (!emailRegex.test(email)) {
-            return next(
+            next(
                 new ErrorHandler("Please enter a valid email address.", 400)
             );
+            return;
         }
 
         if (phoneNumber.toString().length !== 10) {
-            return next(
-                new ErrorHandler("PhoneNumber must be 10 digits long.", 400)
+            next(
+                new ErrorHandler("Phone number must be exactly 10 digits long.", 400)
             );
+            return;
         }
 
         let transport = nodemailer.createTransport({

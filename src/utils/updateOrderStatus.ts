@@ -1,19 +1,17 @@
 import cron from "node-cron";
 import { AppDataSource } from "../config/databaseConnection";
-import { LessThan, LessThanOrEqual } from "typeorm";
+import { LessThanOrEqual } from "typeorm";
 import { Order, OrderStatus } from "../models/User";
 
-// Utility to get date N minutes ago
 const getDateNMinutesAgo = (minutes: number): Date => {
     const date = new Date();
     date.setMinutes(date.getMinutes() - minutes);
     return date;
 };
 
-// Cron Job: runs every 5 minutes
 export const orderStatusCron = () => {
-    cron.schedule("*/5 * * * *", async () => {
-        console.log("⏰ Running 30-min order status updater...");
+    cron.schedule("*/2 * * * *", async () => {
+        console.log("⏰ Running 2-min order status updater...");
 
         const orderRepo = AppDataSource.getRepository(Order);
 
@@ -21,7 +19,7 @@ export const orderStatusCron = () => {
             const processingOrders = await orderRepo.find({
                 where: {
                     status: OrderStatus.PROCESSING,
-                    createdAt: LessThanOrEqual(getDateNMinutesAgo(5)),
+                    createdAt: LessThanOrEqual(getDateNMinutesAgo(2)),
                 },
             });
 
@@ -35,7 +33,7 @@ export const orderStatusCron = () => {
             const shippedOrders = await orderRepo.find({
                 where: {
                     status: OrderStatus.SHIPPED,
-                    updatedAt: LessThanOrEqual(getDateNMinutesAgo(5)),
+                    updatedAt: LessThanOrEqual(getDateNMinutesAgo(2)),
                 },
             });
 

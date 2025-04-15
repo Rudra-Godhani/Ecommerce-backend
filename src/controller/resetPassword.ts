@@ -2,17 +2,14 @@ import { NextFunction, Request, Response } from "express";
 import { AppDataSource } from "../config/databaseConnection";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
-import { v2 as cloudinary } from "cloudinary";
-import { UploadedFile } from "express-fileupload";
 import { User } from "../models/User";
 import nodemailer from "nodemailer";
-import { catchAsyncErrorHandler } from "../utils/CatchAsyncErrorHandler";
+import { catchAsyncErrorHandler } from "../utils/catchAsyncErrorHandler";
 import { ErrorHandler } from "../middleware/errorHandler";
 import { validate } from "class-validator";
 
 const userRepository = AppDataSource.getRepository(User);
 
-// register user
 export const forgotPassword = catchAsyncErrorHandler(
     async (req: Request, res: Response, next: NextFunction): Promise<void> => {
         const { email } = req.body;
@@ -34,7 +31,6 @@ export const forgotPassword = catchAsyncErrorHandler(
             return;
         }
 
-        // Check if username exists
         const user = await userRepository.findOne({
             where: { email },
         });
@@ -96,14 +92,6 @@ export const forgotPassword = catchAsyncErrorHandler(
                 });
             }
         });
-        //  catch (error) {
-        //     console.error("Error during forgot password process:", error);
-        //     res.status(500).json({
-        //         success: false,
-        //         message:
-        //             "Something went wrong while processing your request. Please try again later.",
-        //     });
-        // }
     }
 );
 
@@ -136,6 +124,7 @@ export const resetPassword = catchAsyncErrorHandler(
                     400
                 )
             );
+            return;
         }
 
         if (!token) {
@@ -174,13 +163,5 @@ export const resetPassword = catchAsyncErrorHandler(
             success: true,
             message: "Password updated successfullly",
         });
-        // catch (error) {
-        //     console.error("Error during reset password process:", error);
-        //     res.status(500).json({
-        //         success: false,
-        //         message:
-        //             "Something went wrong while updatig password. Please try again later.",
-        //     });
-        // }
     }
 );

@@ -1,7 +1,7 @@
 import { AppDataSource } from "../config/databaseConnection";
 import { ErrorHandler } from "../middleware/errorHandler";
 import { Order, User } from "../models/User";
-import { catchAsyncErrorHandler } from "../utils/CatchAsyncErrorHandler";
+import { catchAsyncErrorHandler } from "../utils/catchAsyncErrorHandler";
 import { NextFunction, Request, Response } from "express";
 
 const orderRepository = AppDataSource.getRepository(Order);

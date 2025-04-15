@@ -3,7 +3,7 @@ import { AppDataSource } from "../config/databaseConnection";
 import { Address, User } from "../models/User";
 import { ErrorHandler } from "../middleware/errorHandler";
 import { validate } from "class-validator";
-import { catchAsyncErrorHandler } from "../utils/CatchAsyncErrorHandler";
+import { catchAsyncErrorHandler } from "../utils/catchAsyncErrorHandler";
 
 const addressRepository = AppDataSource.getRepository(Address);
 

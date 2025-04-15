@@ -7,6 +7,7 @@ import cartRoutes from "./routes/cartRoutes";
 import paymentRoutes from "./routes/paymentRoute";
 import wishListRoutes from "./routes/wishListRoutes";
 import orderRoutes from "./routes/orderRoutes";
+import addressRoutes from "./routes/addressRoutes";
 import contactUsRoutes from "./routes/contactUsRoutes";
 import cookieParser from "cookie-parser";
 import { databaseConnect } from "./config/databaseConnection";
@@ -49,6 +50,7 @@ app.use("/api/v1/wishlist", wishListRoutes);
 app.use("/api/v1/payment", paymentRoutes);
 app.use("/api/v1/order", orderRoutes);
 app.use("/api/v1/contact", contactUsRoutes);
+app.use("/api/v1/address", addressRoutes);
 
 const startServer = async () => {
     // connect to database
@@ -63,7 +65,7 @@ const startServer = async () => {
 
 startServer();
 app.use(errorMiddleware);
-// orderStatusCron();
+orderStatusCron();
 
 app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
