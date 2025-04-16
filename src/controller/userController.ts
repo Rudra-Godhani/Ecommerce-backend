@@ -34,14 +34,6 @@ export const register = catchAsyncErrorHandler(
             return;
         }
 
-        const usernameExists = await userRepository.findOne({
-            where: { name },
-        });
-        if (usernameExists) {
-            next(new ErrorHandler("Username is already used", 400));
-            return;
-        }
-
         const emailExists = await userRepository.findOne({ where: { email } });
         if (emailExists) {
             next(new ErrorHandler("Email is already used", 400));

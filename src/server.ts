@@ -15,8 +15,8 @@ import { cloudinaryConnect } from "./config/cloudinary";
 import fileUpload from "express-fileupload";
 import { errorMiddleware } from "./middleware/errorHandler";
 import { handleStripeWebhook } from "./controller/paymentController";
-import { orderStatusCron } from "./utils/updateOrderStatus";
 import { insertData } from "./utils/insertProducts";
+import { orderStatusCron } from "./utils/updateOrderStatus";
 
 const app = express();
 const PORT = process.env.PORT || 6000;

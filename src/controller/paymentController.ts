@@ -4,8 +4,8 @@ import { Stripe } from "stripe";
 import { Address, Order, OrderItem, OrderStatus, User } from "../models/User";
 import { AppDataSource } from "../config/databaseConnection";
 import { ErrorHandler } from "../middleware/errorHandler";
-import { Product } from "../models/Product";
 import { ConsumedSession } from "../models/ConsumedSession";
+import { Product } from "../models/Product";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string);
 
@@ -15,6 +15,30 @@ const consumedSessionRepository = AppDataSource.getRepository(ConsumedSession);
 
 interface AuthRequest extends Request {
     user?: User;
+}
+
+interface ProductData {
+    id: string;
+    title: string;
+    descriptionSmall: string;
+    descriptionLong: string[];
+    price: number;
+    retailPrice: number;
+    images: string[];
+    colors: string[];
+    availability: boolean;
+    reviewsText: string[];
+    noOfReviews: number;
+    rating: number;
+    brand: string;
+    category: string;
+    additionalInformation: string;
+}
+
+interface CartItem {
+    quantity: number;
+    product: ProductData;
+    color: string;
 }
 
 export const createCheckoutSession = catchAsyncErrorHandler(
@@ -35,7 +59,7 @@ export const createCheckoutSession = catchAsyncErrorHandler(
         }
 
         const total = data.cartItems.reduce(
-            (sum: number, item: any) =>
+            (sum: number, item: CartItem) =>
                 sum + item.product.retailPrice * item.quantity,
             0
         );
@@ -43,7 +67,7 @@ export const createCheckoutSession = catchAsyncErrorHandler(
         const deliveryCharge = 100.0;
         const netTotal = total + deliveryCharge;
 
-        const lineItems = data.cartItems.map((data: any) => ({
+        const lineItems = data.cartItems.map((data: CartItem) => ({
             price_data: {
                 currency: "inr",
                 product_data: {
@@ -76,7 +100,7 @@ export const createCheckoutSession = catchAsyncErrorHandler(
                 userId: req.user?.id as string,
                 addressId: address.id,
                 cartItems: JSON.stringify(
-                    data.cartItems.map((item: any) => ({
+                    data.cartItems.map((item: CartItem) => ({
                         productId: item.product.id,
                         quantity: item.quantity,
                         color: item.color,
@@ -108,8 +132,10 @@ export const handleStripeWebhook = catchAsyncErrorHandler(
                 sig,
                 endpointSecret
             );
-        } catch (err: any) {
-            next(new ErrorHandler(`Webhook Error: ${err.message}`, 400));
+        } catch (err: unknown) {
+            const message =
+                err instanceof Error ? err.message : "Unknown error";
+            next(new ErrorHandler(`Webhook Error: ${message}`, 400));
             return;
         }
 
@@ -138,25 +164,33 @@ export const handleStripeWebhook = catchAsyncErrorHandler(
 
                 const productRepository = AppDataSource.getRepository(Product);
                 const orderItems = await Promise.all(
-                    cartItems.map(async (item: any) => {
-                        const product = await productRepository.findOne({
-                            where: { id: item.productId },
-                        });
+                    cartItems.map(
+                        async (item: {
+                            productId: string;
+                            quantity: number;
+                            color: string;
+                        }) => {
+                            const product = await productRepository.findOne({
+                                where: { id: item.productId },
+                            });
 
-                        if (!product) {
-                            next(new ErrorHandler("Product not found", 404));
-                            return;
+                            if (!product) {
+                                next(
+                                    new ErrorHandler("Product not found", 404)
+                                );
+                                return;
+                            }
+
+                            const orderItem = new OrderItem();
+                            orderItem.quantity = item.quantity;
+                            orderItem.price = product.retailPrice;
+                            orderItem.totalPrice =
+                                product.retailPrice * item.quantity;
+                            orderItem.product = product;
+                            orderItem.color = item.color;
+                            return orderItem;
                         }
-
-                        const orderItem = new OrderItem();
-                        orderItem.quantity = item.quantity;
-                        orderItem.price = product.retailPrice;
-                        orderItem.totalPrice =
-                            product.retailPrice * item.quantity;
-                        orderItem.product = product;
-                        orderItem.color = item.color;
-                        return orderItem;
-                    })
+                    )
                 );
 
                 const order = new Order();
@@ -259,8 +293,10 @@ export const validateSession = catchAsyncErrorHandler(
                 sessionId: session.id,
                 message: "Session validated successfully",
             });
-        } catch (error: any) {
-            next(new ErrorHandler("Failed to validate session", 500));
+        } catch (err: unknown) {
+            const message =
+                err instanceof Error ? err.message : "Unknown error";
+            next(new ErrorHandler(`Session Validation Error: ${message}`, 500));
             return;
         }
     }

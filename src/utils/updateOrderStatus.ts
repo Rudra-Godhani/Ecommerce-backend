@@ -10,8 +10,8 @@ const getDateNMinutesAgo = (minutes: number): Date => {
 };
 
 export const orderStatusCron = () => {
-    cron.schedule("*/2 * * * *", async () => {
-        console.log("⏰ Running 2-min order status updater...");
+    cron.schedule("*/5 * * * *", async () => {
+        console.log("⏰ Running 5-min order status updater...");
 
         const orderRepo = AppDataSource.getRepository(Order);
 
@@ -19,7 +19,7 @@ export const orderStatusCron = () => {
             const processingOrders = await orderRepo.find({
                 where: {
                     status: OrderStatus.PROCESSING,
-                    createdAt: LessThanOrEqual(getDateNMinutesAgo(2)),
+                    createdAt: LessThanOrEqual(getDateNMinutesAgo(5)),
                 },
             });
 
@@ -33,7 +33,7 @@ export const orderStatusCron = () => {
             const shippedOrders = await orderRepo.find({
                 where: {
                     status: OrderStatus.SHIPPED,
-                    updatedAt: LessThanOrEqual(getDateNMinutesAgo(2)),
+                    updatedAt: LessThanOrEqual(getDateNMinutesAgo(5)),
                 },
             });
 
