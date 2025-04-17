@@ -99,12 +99,14 @@ export const createCheckoutSession = catchAsyncErrorHandler(
             metadata: {
                 userId: req.user?.id as string,
                 addressId: address.id,
-                cartItems: JSON.stringify(
-                    data.cartItems.map((item: CartItem) => ({
-                        productId: item.product.id,
-                        quantity: item.quantity,
-                        color: item.color,
-                    }))
+                cartItemsProductId: JSON.stringify(
+                    data.cartItems.map((item: CartItem) => item.product.id)
+                ),
+                cartItemsProductQuantity: JSON.stringify(
+                    data.cartItems.map((item: CartItem) => item.quantity)
+                ),
+                cartItemsProductColor: JSON.stringify(
+                    data.cartItems.map((item: CartItem) => item.color)
                 ),
                 deliveryCharge: deliveryCharge.toString(),
                 total: total.toString(),
@@ -144,9 +146,36 @@ export const handleStripeWebhook = catchAsyncErrorHandler(
                 const session = event.data.object as Stripe.Checkout.Session;
                 const metadata = session.metadata;
 
+                console.log("metadata: ", metadata);
+
                 const userId = metadata?.userId;
                 const addressId = metadata?.addressId;
-                const cartItems = JSON.parse(metadata?.cartItems || "[]");
+                const cartItemsProductId = JSON.parse(
+                    metadata?.cartItemsProductId || "[]"
+                );
+
+                console.log("cartItemsProductId: ", cartItemsProductId);
+                const cartItemsProductQuantity = JSON.parse(
+                    metadata?.cartItemsProductQuantity || "[]"
+                );
+                console.log(
+                    "cartItemsProductQuantity: ",
+                    cartItemsProductQuantity
+                );
+                const cartItemsProductColor = JSON.parse(
+                    metadata?.cartItemsProductColor || "[]"
+                );
+                console.log("cartItemsProductColor: ", cartItemsProductColor);
+                const cartItems = cartItemsProductId.map(
+                    (productId: string, index: number) => ({
+                        productId,
+                        quantity: cartItemsProductQuantity[index],
+                        color: cartItemsProductColor[index],
+                    })
+                );
+
+                console.log("cartItems: ", cartItems);
+
                 const deliveryCharge = parseFloat(
                     metadata?.deliveryCharge || "0"
                 );
