@@ -15,7 +15,6 @@ import { cloudinaryConnect } from "./config/cloudinary";
 import fileUpload from "express-fileupload";
 import { errorMiddleware } from "./middleware/errorHandler";
 import { handleStripeWebhook } from "./controller/paymentController";
-import { insertData } from "./utils/insertProducts";
 import { orderStatusCron } from "./utils/updateOrderStatus";
 
 const app = express();
@@ -61,7 +60,7 @@ const startServer = async () => {
     cloudinaryConnect();
 
     // insert data to database
-    await insertData();
+    // await insertData();
 };
 
 startServer();

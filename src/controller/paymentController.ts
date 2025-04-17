@@ -146,26 +146,18 @@ export const handleStripeWebhook = catchAsyncErrorHandler(
                 const session = event.data.object as Stripe.Checkout.Session;
                 const metadata = session.metadata;
 
-                console.log("metadata: ", metadata);
-
                 const userId = metadata?.userId;
                 const addressId = metadata?.addressId;
                 const cartItemsProductId = JSON.parse(
                     metadata?.cartItemsProductId || "[]"
                 );
 
-                console.log("cartItemsProductId: ", cartItemsProductId);
                 const cartItemsProductQuantity = JSON.parse(
                     metadata?.cartItemsProductQuantity || "[]"
-                );
-                console.log(
-                    "cartItemsProductQuantity: ",
-                    cartItemsProductQuantity
                 );
                 const cartItemsProductColor = JSON.parse(
                     metadata?.cartItemsProductColor || "[]"
                 );
-                console.log("cartItemsProductColor: ", cartItemsProductColor);
                 const cartItems = cartItemsProductId.map(
                     (productId: string, index: number) => ({
                         productId,
@@ -173,8 +165,6 @@ export const handleStripeWebhook = catchAsyncErrorHandler(
                         color: cartItemsProductColor[index],
                     })
                 );
-
-                console.log("cartItems: ", cartItems);
 
                 const deliveryCharge = parseFloat(
                     metadata?.deliveryCharge || "0"
