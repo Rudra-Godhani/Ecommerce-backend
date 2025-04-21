@@ -275,6 +275,9 @@ export const getCart = catchAsyncErrorHandler(
     async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
         const userId = req.user?.id;
 
+        const user = await userRepository.findOne({ where: { id: userId } });
+        console.log("user cart:", user);
+
         const cart = await cartRepository.findOne({
             where: { user: { id: userId } },
             relations: ["cartItems", "cartItems.product"],

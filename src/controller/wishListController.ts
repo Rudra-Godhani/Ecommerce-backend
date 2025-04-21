@@ -143,6 +143,9 @@ export const getWishList = catchAsyncErrorHandler(
     async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
         const userId = req.user?.id;
 
+        const user = await userRepository.findOne({ where: { id: userId } });
+        console.log("user wishlist:", user);
+
         const wishList = await wishListRepository.findOne({
             where: { user: { id: userId } },
             relations: ["wishListItems", "wishListItems.product"],
