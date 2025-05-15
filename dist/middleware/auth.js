@@ -13,53 +13,36 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.isAuthenticated = void 0;
-const data_source_1 = require("../config/data-source");
+const databaseConnection_1 = require("../config/databaseConnection");
 const User_1 = require("../models/User");
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const dotenv_1 = __importDefault(require("dotenv"));
+const catchAsyncErrorHandler_1 = require("../utils/catchAsyncErrorHandler");
+const errorHandler_1 = require("./errorHandler");
 dotenv_1.default.config();
-const userRepository = data_source_1.AppDataSource.getRepository(User_1.User);
-const isAuthenticated = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
-    try {
-        console.log("token cookie:", req.cookies);
-        const { token } = req.cookies;
-        if (!token) {
-            res.status(401).json({
-                success: false,
-                message: "user is not authenticated.",
-            });
-            return;
-        }
-        if (!process.env.JWT_SECRET) {
-            throw new Error("JWT_SECRET is not defined in environment variables.");
-        }
-        const decoded = jsonwebtoken_1.default.verify(token, process.env.JWT_SECRET);
-        if (!decoded) {
-            res.status(401).json({
-                status: false,
-                message: "token is not valid",
-            });
-            return;
-        }
-        const user = yield userRepository.findOne({
-            where: { id: decoded.id },
-        });
-        if (!user) {
-            res.status(404).json({
-                success: false,
-                message: "User not found.",
-            });
-            return;
-        }
-        req.user = user;
-        next();
+const userRepository = databaseConnection_1.AppDataSource.getRepository(User_1.User);
+exports.isAuthenticated = (0, catchAsyncErrorHandler_1.catchAsyncErrorHandler)((req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
+    const { token } = req.cookies;
+    if (!token) {
+        next(new errorHandler_1.ErrorHandler("User is not authenticated.", 401));
+        return;
     }
-    catch (error) {
-        console.error("Error fetching user:", error);
-        res.status(500).json({
-            success: false,
-            message: "Error fetching user",
-        });
+    if (!process.env.JWT_SECRET) {
+        next(new errorHandler_1.ErrorHandler("JWT_SECRET is not found.", 404));
+        return;
     }
-});
-exports.isAuthenticated = isAuthenticated;
+    const decoded = jsonwebtoken_1.default.verify(token, process.env.JWT_SECRET);
+    if (!decoded) {
+        next(new errorHandler_1.ErrorHandler("token is invalid.", 401));
+        return;
+    }
+    const user = yield userRepository.findOne({
+        where: { id: decoded.id },
+    });
+    if (!user) {
+        next(new errorHandler_1.ErrorHandler("User not found.", 404));
+        return;
+    }
+    req.user = user;
+    next();
+}));

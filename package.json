@@ -5,7 +5,11 @@
   "scripts": {
     "dev": "nodemon src/server.ts",
     "build": "tsc",
-    "start": "node dist/server.js"
+    "start": "node dist/server.js",
+    "typeorm": "ts-node -r dotenv/config --transpile-only ./node_modules/typeorm/cli.js",
+    "migration:generate": "cross-env NODE_ENV=development npm run typeorm migration:generate -- -d src/config/databaseConnection.ts src/migrations/Init",
+    "migration:run": "cross-env NODE_ENV=development npm run typeorm migration:run -- -d src/config/databaseConnection.ts",
+    "migration:revert": "cross-env NODE_ENV=development npm run typeorm migration:revert -- -d src/config/databaseConnection.ts"
   },
   "keywords": [],
   "author": "",
@@ -23,9 +27,9 @@
     "jsonwebtoken": "^9.0.2",
     "node-cron": "^3.0.3",
     "nodemailer": "^6.10.0",
-    "pg": "^8.14.0",
-    "stripe": "^18.0.0",
-    "typeorm": "^0.3.21"
+    "pg": "^8.16.0",
+    "reflect-metadata": "^0.2.2",
+    "stripe": "^18.0.0"
   },
   "devDependencies": {
     "@types/bcrypt": "^5.0.2",
@@ -38,8 +42,11 @@
     "@types/node-cron": "^3.0.11",
     "@types/nodemailer": "^6.4.17",
     "@types/pg": "^8.11.11",
+    "cross-env": "^7.0.3",
     "nodemon": "^3.1.9",
     "ts-node": "^10.9.2",
+    "tsconfig-paths": "^4.2.0",
+    "typeorm": "^0.3.24",
     "typescript": "^5.8.2"
   }
 }

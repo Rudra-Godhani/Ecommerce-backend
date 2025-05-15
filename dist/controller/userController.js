@@ -24,250 +24,209 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.updatePassword = exports.updateProfile = exports.getUser = exports.getAllUsers = exports.logout = exports.login = exports.register = void 0;
-const data_source_1 = require("../config/data-source");
+const databaseConnection_1 = require("../config/databaseConnection");
 const bcrypt_1 = __importDefault(require("bcrypt"));
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
-const dotenv_1 = __importDefault(require("dotenv"));
 const cloudinary_1 = require("cloudinary");
 const User_1 = require("../models/User");
-dotenv_1.default.config();
-const userRepository = data_source_1.AppDataSource.getRepository(User_1.User);
-// register user
-const register = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    try {
-        const { name, email, password } = req.body;
-        // Check if username exists
-        const usernameExists = yield userRepository.findOne({
-            where: { name },
-        });
-        if (usernameExists) {
-            res.status(400).json({
-                success: false,
-                message: "Username is already used",
-            });
+const errorHandler_1 = require("../middleware/errorHandler");
+const class_validator_1 = require("class-validator");
+const catchAsyncErrorHandler_1 = require("../utils/catchAsyncErrorHandler");
+const userRepository = databaseConnection_1.AppDataSource.getRepository(User_1.User);
+exports.register = (0, catchAsyncErrorHandler_1.catchAsyncErrorHandler)((req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
+    const { name, email, password } = req.body;
+    const newUser = userRepository.create({
+        name,
+        email,
+        password,
+    });
+    const validationErrors = yield (0, class_validator_1.validate)(newUser, {
+        skipMissingProperties: true,
+    });
+    if (validationErrors.length > 0) {
+        next(new errorHandler_1.ErrorHandler(Object.values(validationErrors[0].constraints)[0], 400));
+        return;
+    }
+    const emailExists = yield userRepository.findOne({ where: { email } });
+    if (emailExists) {
+        next(new errorHandler_1.ErrorHandler("Email is already used", 400));
+        return;
+    }
+    const hashedPassword = yield bcrypt_1.default.hash(password, 10);
+    newUser.password = hashedPassword;
+    yield userRepository.save(newUser);
+    const { password: _ } = newUser, userWithoutPassword = __rest(newUser, ["password"]);
+    res.status(201).json({
+        success: true,
+        message: "User Registered Successfully",
+        user: userWithoutPassword,
+    });
+}));
+exports.login = (0, catchAsyncErrorHandler_1.catchAsyncErrorHandler)((req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
+    const { email, password } = req.body;
+    const userToValidate = userRepository.create({
+        email,
+        password,
+    });
+    const validationErrors = yield (0, class_validator_1.validate)(userToValidate, {
+        skipMissingProperties: true,
+    });
+    if (validationErrors.length > 0) {
+        next(new errorHandler_1.ErrorHandler(Object.values(validationErrors[0].constraints)[0], 400));
+        return;
+    }
+    const user = yield userRepository.findOne({
+        where: { email },
+    });
+    if (!user) {
+        next(new errorHandler_1.ErrorHandler("User is not registered,Please signup first", 400));
+        return;
+    }
+    const isValidPassword = yield bcrypt_1.default.compare(password, user.password);
+    if (isValidPassword) {
+        const payload = {
+            id: user.id,
+        };
+        const secret = process.env.JWT_SECRET;
+        if (!secret) {
+            next(new errorHandler_1.ErrorHandler("JWT_SECRET is not found.", 400));
             return;
         }
-        // Check if email exists
-        const emailExists = yield userRepository.findOne({ where: { email } });
-        if (emailExists) {
-            res.status(400).json({
-                success: false,
-                message: "Email is already used",
-            });
-            return;
-        }
-        // Hash password
-        const hashedPassword = yield bcrypt_1.default.hash(password, 10);
-        const newUser = userRepository.create({
-            name,
-            email,
-            password: hashedPassword,
+        const token = jsonwebtoken_1.default.sign(payload, secret, {
+            expiresIn: "7d",
         });
-        yield userRepository.save(newUser);
-        const { password: _ } = newUser, userWithoutPassword = __rest(newUser, ["password"]);
-        res.status(201).json({
+        user.token = token;
+        yield userRepository.save(user);
+        const { password: _ } = user, userWithoutPassword = __rest(user, ["password"]);
+        res.cookie("token", token, {
+            httpOnly: true,
+            secure: true,
+            sameSite: "none",
+            path: "/",
+            maxAge: 7 * 24 * 60 * 60 * 1000,
+        }).status(200).json({
             success: true,
-            message: "User Registered Successfully",
+            token,
             user: userWithoutPassword,
+            message: "User Logged in successfully",
         });
     }
-    catch (error) {
-        console.error("Error registering user:", error);
-        res.status(500).json({
-            success: false,
-            message: "User cannot be registered. Please try again",
-        });
+    else {
+        next(new errorHandler_1.ErrorHandler("Password is incorrect", 400));
+        return;
     }
-});
-exports.register = register;
-// login user
-const login = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    try {
-        const { email, password } = req.body;
-        // Check if user exists
-        const user = yield userRepository.findOne({
-            where: { email },
-        });
-        if (!user) {
-            res.status(400).json({
-                success: false,
-                message: "User is not registered,Please signup first",
-            });
-            return;
-        }
-        const isValidPassword = yield bcrypt_1.default.compare(password, user.password);
-        if (isValidPassword) {
-            const payload = {
-                id: user.id,
-            };
-            const secret = process.env.JWT_SECRET;
-            if (!secret) {
-                res.status(400).json({
-                    success: false,
-                    message: "JWT_SECRET is not defined in environment variables",
-                });
-                return;
-            }
-            const token = jsonwebtoken_1.default.sign(payload, secret, {
-                expiresIn: "7d",
-            });
-            user.token = token;
-            const { password: _ } = user, userWithoutPassword = __rest(user, ["password"]);
-            const options = {
-                expires: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-                httpOnly: true,
-            };
-            res.cookie("token", token, options).status(200).json({
-                success: true,
-                token,
-                user: userWithoutPassword,
-                message: "User Logged in successfully",
-            });
-        }
-        else {
-            res.status(400).json({
-                success: false,
-                message: "Password is incorrect",
-            });
-        }
-    }
-    catch (error) {
-        console.error("Error LoggedIn user:", error);
-        res.status(500).json({
-            success: false,
-            message: "Login Failure, please try again",
-        });
-    }
-});
-exports.login = login;
-// logout
-const logout = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+}));
+exports.logout = (0, catchAsyncErrorHandler_1.catchAsyncErrorHandler)((req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
     res.clearCookie("token");
     res.status(200).json({
         success: true,
         message: "User Logged out successfully",
     });
-});
-exports.logout = logout;
-// get all users
-const getAllUsers = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    try {
-        const users = yield userRepository.find();
-        res.status(200).json(users);
-    }
-    catch (error) {
-        res.status(500).json({
-            success: false,
-            message: "Failed fetching users",
-        });
-    }
-});
-exports.getAllUsers = getAllUsers;
-// get user
-const getUser = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+}));
+exports.getAllUsers = (0, catchAsyncErrorHandler_1.catchAsyncErrorHandler)((req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
+    const users = yield userRepository.find();
+    res.status(200).json({
+        success: true,
+        users: users,
+    });
+}));
+exports.getUser = (0, catchAsyncErrorHandler_1.catchAsyncErrorHandler)((req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
     const user = req.user;
     res.status(200).json({
         success: true,
         user,
     });
-});
-exports.getUser = getUser;
-const updateProfile = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    try {
-        const users = yield userRepository.find();
-        console.log("users:", users);
-        const filteredUser = users.filter((user) => user.id !== req.user.id);
-        console.log("filteredUser:", filteredUser);
-        const emailExist = filteredUser.find((user) => user.email === req.body.email);
-        console.log("emailExist:", emailExist);
-        if (emailExist) {
-            res.status(400).json({
-                success: false,
-                message: "Email is already used",
-            });
-            return;
-        }
-        const userNewData = {
-            name: req.body.name,
-            email: req.body.email,
-            phoneNumber: req.body.phoneNumber,
-            address: req.body.address,
-            profileImage: req.user.profileImage,
-        };
-        if (req.files && req.files.profileImage) {
-            const profileImage = req.files.profileImage;
-            if (profileImage) {
-                const currentProfileImageId = req.user.profileImage
-                    .public_id;
-                if (currentProfileImageId) {
-                    yield cloudinary_1.v2.uploader.destroy(currentProfileImageId);
-                }
-                const tempFilePath = profileImage
-                    .tempFilePath;
-                const newProfileImage = yield cloudinary_1.v2.uploader.upload(tempFilePath, {
-                    folder: "User_Profile_Image",
-                });
-                userNewData.profileImage = {
-                    public_id: newProfileImage.public_id,
-                    url: newProfileImage.secure_url,
-                };
+}));
+exports.updateProfile = (0, catchAsyncErrorHandler_1.catchAsyncErrorHandler)((req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
+    const { name, email, phoneNumber } = req.body;
+    let userNewData = userRepository.create({
+        name: name,
+        email: email,
+        profileImage: req.user.profileImage,
+    });
+    if (phoneNumber) {
+        userNewData.phoneNumber = phoneNumber;
+    }
+    const validationErrors = yield (0, class_validator_1.validate)(userNewData, {
+        skipMissingProperties: true,
+    });
+    if (validationErrors.length > 0) {
+        next(new errorHandler_1.ErrorHandler(Object.values(validationErrors[0].constraints)[0], 400));
+        return;
+    }
+    const users = yield userRepository.find();
+    const filteredUser = users.filter((user) => user.id !== req.user.id);
+    const emailExist = filteredUser.find((user) => user.email === req.body.email);
+    if (emailExist) {
+        next(new errorHandler_1.ErrorHandler("Email is already used", 400));
+        return;
+    }
+    if (req.files && req.files.profileImage) {
+        const profileImage = req.files.profileImage;
+        if (profileImage) {
+            const currentProfileImageId = req.user.profileImage
+                .public_id;
+            if (currentProfileImageId) {
+                yield cloudinary_1.v2.uploader.destroy(currentProfileImageId);
             }
-        }
-        console.log("userNeWData:", userNewData);
-        yield userRepository.update(req.user.id, userNewData);
-        const updatedUser = yield userRepository.findOne({
-            where: { id: req.user.id },
-        });
-        res.status(200).json({
-            success: true,
-            user: updatedUser,
-            message: "Profile updated successfully",
-        });
-    }
-    catch (error) {
-        console.error("Error While Updating Profile:", error);
-        res.status(500).json({
-            success: false,
-            message: "Failed Upadting Profile, please try again",
-        });
-    }
-});
-exports.updateProfile = updateProfile;
-// update Password
-const updatePassword = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    try {
-        const user = yield userRepository.findOne({
-            where: { id: req.user.id },
-        });
-        if (!user) {
-            res.status(404).json({
-                success: false,
-                message: "User not found",
+            const tempFilePath = profileImage
+                .tempFilePath;
+            const newProfileImage = yield cloudinary_1.v2.uploader.upload(tempFilePath, {
+                folder: "User_Profile_Image",
             });
-            return;
+            userNewData.profileImage = {
+                public_id: newProfileImage.public_id,
+                url: newProfileImage.secure_url,
+            };
         }
-        const isPasswordMatched = yield bcrypt_1.default.compare(req.body.currentPassword, user.password);
-        if (!isPasswordMatched) {
-            res.status(400).json({
-                success: false,
-                message: "Old password is incorrect",
-            });
-            return;
-        }
-        const hashedPassword = yield bcrypt_1.default.hash(req.body.newPassword, 10);
-        user.password = hashedPassword;
-        yield userRepository.save(user);
-        res.status(200).json({
-            success: true,
-            message: "Password updated successfully",
-        });
     }
-    catch (error) {
-        console.error("Error While Updating Password:", error);
-        res.status(500).json({
-            success: false,
-            message: "Failed Upadting Password, please try again",
-        });
+    yield userRepository.update(req.user.id, userNewData);
+    const updatedUser = yield userRepository.findOne({
+        where: { id: req.user.id },
+    });
+    res.status(200).json({
+        success: true,
+        user: updatedUser,
+        message: "Profile updated successfully",
+    });
+}));
+exports.updatePassword = (0, catchAsyncErrorHandler_1.catchAsyncErrorHandler)((req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
+    const { currentPassword, newPassword, confirmPassword } = req.body;
+    if (!currentPassword) {
+        next(new errorHandler_1.ErrorHandler("Current password is required.", 400));
+        return;
     }
-});
-exports.updatePassword = updatePassword;
+    const userToValidate = userRepository.create({
+        password: newPassword,
+    });
+    const validationErrors = yield (0, class_validator_1.validate)(userToValidate, {
+        skipMissingProperties: true,
+    });
+    if (validationErrors.length > 0) {
+        next(new errorHandler_1.ErrorHandler(Object.values(validationErrors[0].constraints)[0], 400));
+        return;
+    }
+    if (newPassword !== confirmPassword) {
+        next(new errorHandler_1.ErrorHandler("NewPassword and ConfirmNewPassword don't match.", 400));
+        return;
+    }
+    const user = yield userRepository.findOne({
+        where: { id: req.user.id },
+    });
+    if (!user) {
+        next(new errorHandler_1.ErrorHandler("User not found", 404));
+        return;
+    }
+    const isPasswordMatched = yield bcrypt_1.default.compare(req.body.currentPassword, user.password);
+    if (!isPasswordMatched) {
+        next(new errorHandler_1.ErrorHandler("Current password is incorrect", 400));
+        return;
+    }
+    const hashedPassword = yield bcrypt_1.default.hash(req.body.newPassword, 10);
+    user.password = hashedPassword;
+    yield userRepository.save(user);
+    res.status(200).json({
+        success: true,
+        message: "Password updated successfully",
+    });
+}));
